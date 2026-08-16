@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anneal.dev/schemas/step-event.schema.json",
+  "title": "Anneal StepEvent",
+  "description": "One record per executed step, written LIVE to the step_event table by the interpreter as the step completes (D33 — no events.jsonl hop). LLD §4.",
+  "type": "object",
+  "required": ["step_index", "step_id", "action", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "step_index": { "type": "integer", "minimum": 0 },
+    "step_id": { "type": "string", "description": "'s8' or module-derived 'login/s1' — signature-stable (LLD §9)" },
+    "intent": { "type": "string" },
+    "action": { "type": "string" },
+    "rung_used": { "enum": ["testid", "role", "text", "placeholder", "css", null] },
+    "fallback": { "type": "boolean", "description": "true ⇒ resolved below the top rung ⇒ auto-opens a re-freeze incident (D28)" },
+    "status": { "enum": ["passed", "failed", "skipped"] },
+    "error_class": {
+      "type": ["string", "null"],
+      "enum": ["LOCATOR_DRIFT", "POSTCONDITION_UNMET", "NETWORK_EXPECTATION_UNMET", "API_MISMATCH", "UI_BUG", "TOOL_ERROR", "ENV_INFRA", "ENV_CAPACITY", "AUTH_EXPIRED", "POLICY_STOP", "ENGINE_FAULT", "UNSUPPORTED_VERB", "FLAKY", null]
+    },
+    "budget_ms": { "type": "integer" },
+    "elapsed_ms": { "type": "integer" },
+    "network": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": { "type": "string" },
+          "url": { "type": "string" },
+          "status": { "type": "integer" },
+          "matched_expectation": { "type": "boolean" }
+        }
+      }
+    },
+    "detail": {
+      "type": "object",
+      "description": "postcondition results, before/after frame refs (ArtifactStore), guard notes"
+    }
+  }
+}

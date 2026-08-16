@@ -1,0 +1,83 @@
+/* Suite & run — screen CSS. */
+
+.suite-hd{display:flex; align-items:flex-start; gap:16px; margin-bottom:16px}
+.suite-hd h1{margin:0 0 5px; font-size:20px; letter-spacing:-.01em}
+.suite-hd .sub{color:var(--muted); font-size:12.5px}
+.suite-hd .meta{display:flex; gap:8px; margin-top:9px; flex-wrap:wrap}
+.runbar{margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+.selctl{display:flex; align-items:center; gap:6px; border:1px solid var(--line-2); background:var(--panel); border-radius:var(--r-sm); padding:5px 9px; font-family:var(--font-mono); font-size:11.5px; color:var(--ink-2)}
+.selctl select{border:0; background:transparent; color:var(--ink); font-family:var(--font-mono); font-size:11.5px; outline:none}
+.selctl .lab{color:var(--muted)}
+
+/* members table */
+.mtable{border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--panel)}
+.mhead, .mrow{display:grid; grid-template-columns:1.6fr 2fr 130px 96px; gap:12px; align-items:center; padding:10px 14px}
+.mhead{font-family:var(--font-mono); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); border-bottom:1px solid var(--line); background:var(--panel-2)}
+.mrow{border-bottom:1px solid var(--line); cursor:pointer}
+.mrow:hover{background:var(--panel-2)}
+.mrow:last-child{border-bottom:0}
+.mrow .k{font-family:var(--font-mono); font-size:12px; color:var(--ink)}
+.mrow .cov{display:flex; gap:5px; flex-wrap:wrap}
+.mrow .cov .s{font-family:var(--font-mono); font-size:10px; color:var(--muted); background:var(--sunk); border:1px solid var(--line); border-radius:4px; padding:0 5px}
+.mrow .cov .none{color:var(--faint); font-style:italic}
+.mrow .last{font-family:var(--font-mono); font-size:10.5px; color:var(--muted)}
+input[type=checkbox]{accent-color:var(--v-run); width:15px; height:15px}
+
+/* select-by-change */
+.selbox{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:14px; margin-bottom:14px}
+.selbox label{font-family:var(--font-mono); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:7px}
+.selbox textarea{width:100%; border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink); border-radius:var(--r-sm); padding:10px 12px; font-size:13px; resize:vertical; min-height:64px; font-family:var(--font-sans)}
+.selbox .row{display:flex; align-items:center; gap:12px; margin-top:10px}
+.selbox .hint{font-family:var(--font-mono); font-size:10.5px; color:var(--faint)}
+.selsum{display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; font-family:var(--font-mono); font-size:11.5px; color:var(--ink-2)}
+.selsum .big{font-size:13px; font-weight:700; color:var(--ink)}
+.selsum .form{color:var(--faint); margin-left:auto}
+.prow{border:1px solid var(--line); border-radius:var(--r-sm); background:var(--panel); padding:11px 13px; margin-bottom:8px; display:grid; grid-template-columns:150px 1fr; gap:6px 16px; align-items:center}
+.prow.skipped{opacity:.72; background:var(--panel-2)}
+.prow.cold{border-style:dashed; border-color:var(--line-2)}
+.prow .top{display:flex; align-items:center; gap:9px; grid-column:1/-1}
+.prow .k{font-family:var(--font-mono); font-size:12px; color:var(--ink)}
+.selchip{font-family:var(--font-mono); font-size:10px; font-weight:700; border-radius:20px; padding:2px 8px; display:inline-flex; gap:5px; align-items:center}
+.selchip.sel{color:var(--v-green); background:var(--v-green-bg)}
+.selchip.skip{color:var(--muted); background:var(--sunk)}
+.selchip.cold{color:var(--v-run); background:var(--v-run-bg)}
+.prow .score{display:flex; align-items:center; gap:9px}
+.scorebar{position:relative; flex:1; height:6px; background:var(--sunk); border-radius:3px; overflow:visible}
+.scorebar i{position:absolute; left:0; top:0; bottom:0; border-radius:3px; background:var(--v-green)}
+.prow.skipped .scorebar i{background:var(--faint)}
+.scorebar .th{position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--v-red); left:45%}
+.prow .num{font-family:var(--font-mono); font-size:11.5px; font-variant-numeric:tabular-nums; width:34px; text-align:right}
+.prow .reason{grid-column:1/-1; font-size:12px; color:var(--muted); line-height:1.5}
+.prow .reason b{color:var(--ink-2); font-weight:600}
+
+/* modal */
+.scrim{position:fixed; inset:0; background:rgba(10,11,14,.4); display:grid; place-items:center; z-index:50; padding:24px}
+.modal{width:100%; max-width:620px; max-height:88vh; overflow:auto; background:var(--panel); border:1px solid var(--line-2); border-radius:12px; box-shadow:var(--shadow-lg)}
+.modal-h{display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--panel)}
+.modal-h .tt{font-weight:600; font-size:14px} .modal-h .x{margin-left:auto; border:0; background:transparent; color:var(--muted); font-size:18px; cursor:pointer}
+.modal-b{padding:16px 18px}
+.rt-row{display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid var(--line); font-size:12.5px}
+.rt-row .g{width:16px; text-align:center; font-size:13px}
+.rt-row .k{font-family:var(--font-mono); font-size:12px; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink)}
+.rt-row .d{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); flex:none}
+.rt-row.pending{opacity:.5} .rt-row .spin{color:var(--v-run)}
+.suiteverdict{display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:14px; border-top:1px solid var(--line-2)}
+.suiteverdict .lbl{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint)}
+.parkbanner{border:1px solid color-mix(in srgb,var(--v-park) 40%,var(--line)); background:var(--v-park-bg); border-radius:var(--r); padding:14px 16px}
+.parkbanner h4{margin:0 0 6px; font-size:13px; display:flex; align-items:center; gap:8px}
+.parkbanner p{margin:0 0 12px; color:var(--ink-2); font-size:12.5px}
+.busy409{border:1px solid color-mix(in srgb,var(--v-red) 40%,var(--line)); background:var(--v-red-bg); border-radius:var(--r); padding:12px 14px; font-size:12.5px; color:var(--ink-2)}
+
+/* suite create/edit form */
+/* suite content column matches the prototype's narrower working width */
+.content.narrow{max-width:1100px}
+.ff{margin-bottom:16px}
+/* direct-child only — must NOT uppercase the nested .crow catalog-row labels */
+.ff > label{font-family:var(--font-mono); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:7px}
+.ff input[type=text]{width:100%; border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink); border-radius:var(--r-sm); padding:9px 12px; font-size:13px; font-family:var(--font-mono)}
+.catalog{border:1px solid var(--line); border-radius:var(--r-sm); overflow:hidden}
+.crow{display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--line); cursor:pointer}
+.crow:last-child{border-bottom:0} .crow:hover{background:var(--panel-2)}
+.crow .k{font-family:var(--font-mono); font-size:12px; color:var(--ink)}
+.ffbar{display:flex; align-items:center; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line-2)}
+.ffbar .cnt{font-family:var(--font-mono); font-size:11.5px; color:var(--muted)}

@@ -1,0 +1,5 @@
+# P2 — create campaign from NL + select agent + verify agent selected   [expect: green]
+
+Go to the campaign v2 page and create a new campaign. Give it any name, then open the
+Outbound Agent dropdown and choose any agent. Verify that an agent is selected on the
+campaign before submitting. Create the campaign and verify we land on its detail page.

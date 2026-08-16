@@ -1,0 +1,29 @@
+# Keep the build context small and secret-free.
+.git
+.env
+.env.*
+secrets/
+.anneal/
+.venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node / frontend build artifacts (the image rebuilds these)
+frontend/node_modules/
+frontend/dist/
+frontend/openapi.json
+node_modules/
+
+# Local tooling / editor / OS cruft
+.DS_Store
+.playwright-mcp/
+.idea/
+.vscode/
+
+# Docs, screenshots — not needed at runtime
+*.png
+tests-screen.png
+# NOTE: design/ is NOT ignored — the frontend build imports design/tokens.css.

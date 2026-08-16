@@ -1,0 +1,69 @@
+/* Incident money-shot — Direction B (triage cockpit), .
+   Per-member feature/bug ruling, collected client-side, submitted once. */
+
+.cockpit{display:grid; grid-template-columns:360px 1fr; grid-template-rows:1fr auto; height:calc(100vh - 48px)}
+@media (max-width:1080px){ .cockpit{grid-template-columns:1fr; height:auto} }
+
+.b-list{border-right:1px solid var(--line); background:var(--panel-2); display:flex; flex-direction:column; min-height:0}
+.b-list-h{padding:12px 14px; border-bottom:1px solid var(--line)}
+.b-list-h .brief{font-size:12px; color:var(--ink-2); margin-top:8px}
+.b-progress{display:flex; align-items:center; gap:8px; margin-top:10px; font-family:var(--font-mono); font-size:10.5px; color:var(--muted)}
+.b-progress .bar{flex:1; height:5px; background:var(--sunk); border-radius:3px; overflow:hidden}
+.b-progress .bar i{display:block; height:100%; background:var(--v-prov); transition:width .2s}
+.b-bulk{padding:8px 14px; border-bottom:1px solid var(--line); display:flex; gap:8px; align-items:center}
+.b-members{overflow:auto; flex:1; min-height:0}
+.member{display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--line); cursor:pointer; position:relative; width:100%; text-align:left; background:none; border-left:0; border-right:0; border-top:0; font-family:inherit; color:var(--ink)}
+.member:hover{background:var(--panel)}
+.member.sel{background:var(--panel)}
+.member.sel::before{content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--v-prov)}
+.member.ruled{opacity:.62}
+.member .mbody{min-width:0; flex:1}
+.member .mnm{font-family:var(--font-mono); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.member .msub{font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.member .mrule{font-family:var(--font-mono); font-size:9.5px; margin-top:3px}
+.member .mrule.feat{color:var(--v-green)} .member .mrule.bug{color:var(--v-red)}
+.member .macts{display:flex; gap:4px; flex:none}
+.iconbtn{width:26px;height:26px;border-radius:6px;border:1px solid var(--line-2); background:var(--panel); display:grid;place-items:center; color:var(--muted); font-size:13px; cursor:pointer}
+.iconbtn.feat:hover, .iconbtn.feat.on{background:var(--v-green-bg); color:var(--v-green); border-color:transparent}
+.iconbtn.bug:hover, .iconbtn.bug.on{background:var(--v-red-bg); color:var(--v-red); border-color:transparent}
+
+.b-detail{overflow:auto; min-height:0; padding:16px 18px}
+.b-detail .dh{display:flex; align-items:flex-start; gap:12px; margin-bottom:14px}
+.b-detail .dh .nm{font-family:var(--font-mono); font-size:14px}
+.b-detail .dh .sub{color:var(--muted); font-size:12px; margin-top:3px}
+.b-ev{display:flex; gap:8px; align-items:center; margin:12px 0; flex-wrap:wrap}
+.b-ev .lab{font-family:var(--font-mono); font-size:10px; color:var(--muted)}
+.evlink{display:inline-flex; gap:6px; align-items:center; font-family:var(--font-mono); font-size:11px; border:1px solid var(--line-2); border-radius:6px; padding:4px 8px; color:var(--ink-2); text-decoration:none}
+.evlink:hover{border-color:var(--muted); text-decoration:none} .evlink .ok{color:var(--v-green)} .evlink .no{color:var(--faint)}
+
+.b-foot{grid-column:1/-1; border-top:1px solid var(--line-2); background:var(--panel-2); padding:12px 16px; display:flex; align-items:center; gap:14px}
+.b-foot .note{flex:1; max-width:460px}
+.b-foot .note input{width:100%; border:1px solid var(--line-2); background:var(--panel); color:var(--ink); border-radius:var(--r-sm); padding:8px 11px; font-family:var(--font-mono); font-size:12px}
+.b-foot .impact{font-size:11.5px; color:var(--muted)}
+
+.btn.feat{background:var(--v-green); color:#fff; border-color:transparent}
+.btn.bug{background:var(--panel); color:var(--v-red); border-color:color-mix(in srgb,var(--v-red) 45%,var(--line))}
+.btn.bug:hover{background:var(--v-red-bg)}
+
+/* diff viewer */
+.diffwrap{border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--panel)}
+.diffbar{display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--line); background:var(--panel-2)}
+.modes{display:inline-flex; border:1px solid var(--line-2); border-radius:6px; overflow:hidden}
+.modes button{border:0; background:var(--panel); color:var(--muted); padding:4px 10px; font-size:11px; font-family:var(--font-mono); border-right:1px solid var(--line-2)}
+.modes button:last-child{border-right:0}
+.modes button[aria-selected="true"]{background:var(--sunk); color:var(--ink); font-weight:600}
+.diffbar .pct{margin-left:auto; font-family:var(--font-mono); font-size:10.5px; color:var(--v-red)}
+.diffbody{display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px}
+.diffcap{font-family:var(--font-mono); font-size:10px; color:var(--muted); margin-bottom:6px; display:flex; gap:6px; align-items:center}
+.framed{border-radius:6px; overflow:hidden; border:1px solid var(--line-2); background:#0f1115; aspect-ratio:16/9; position:relative}
+.framed img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block}
+.framed .none{position:absolute; inset:0; display:grid; place-items:center; color:#6a7078; font-family:var(--font-mono); font-size:10px; text-align:center; padding:14px}
+.steps-delta{padding:12px; border-top:1px solid var(--line); background:var(--panel-2)}
+.sd-row{display:flex; gap:10px; align-items:flex-start; padding:5px 0; font-size:12px}
+.sd-row .mk{font-family:var(--font-mono); font-size:11px; width:16px; text-align:center; flex:none}
+.sd-row.add{color:var(--v-green)} .sd-row.add .mk{color:var(--v-green)}
+.sd-row.rm{color:var(--v-red); text-decoration:line-through; opacity:.8} .sd-row.rm .mk{color:var(--v-red)}
+.sd-row.keep{color:var(--ink-2)}
+.bugcard{border:1px solid color-mix(in srgb,var(--v-red) 40%,var(--line)); background:var(--panel); border-radius:var(--r); padding:12px 14px; margin-top:12px; font-size:12.5px}
+
+.ms-empty{padding:48px 24px; color:var(--muted); font-family:var(--font-mono); font-size:12px}

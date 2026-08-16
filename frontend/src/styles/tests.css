@@ -1,0 +1,72 @@
+/* Tests catalog — every test grouped by the suites it belongs to (many-to-many
+   via suite.member_test_ids); tests in no suite form the "In no suite" coverage-gap group. Grouping +
+   quarantined + head_version are real; last verdict is DERIVED from GET /runs (same as Suite.tsx);
+   coverage surfaces have no client source (only in the head bundle) → kept behind .stub. Scoped under
+   .tests-scope so screen-local class names never collide with other screens' global CSS. */
+.tests-scope .hdrow{display:flex; align-items:flex-start; gap:16px; margin-bottom:6px}
+.tests-scope .hdrow h1{margin:0 0 4px; font-size:20px; letter-spacing:-.01em}
+.tests-scope .lede{color:var(--muted); font-size:12.5px; margin:0; max-width:640px}
+.tests-scope .hdrow .btn{margin-left:auto}
+.tests-scope .controls{display:flex; align-items:center; gap:10px; margin:14px 0; flex-wrap:wrap}
+.tests-scope .stat{font-family:var(--font-mono); font-size:11.5px; color:var(--muted)}
+.tests-scope .stat b{color:var(--ink)}
+
+.tests-scope .group{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); margin-bottom:12px; overflow:hidden}
+.tests-scope .ghead{display:flex; align-items:center; gap:10px; padding:11px 14px; cursor:pointer; background:var(--panel-2); border-bottom:1px solid var(--line)}
+.tests-scope .group.closed .ghead{border-bottom:0}
+.tests-scope .ghead:hover{background:var(--sunk)}
+.tests-scope .ghead .chev{width:14px; text-align:center; color:var(--muted); font-size:13px}
+.tests-scope .ghead .gname{font-family:var(--font-mono); font-size:13px; font-weight:600}
+.tests-scope .ghead .gc{font-family:var(--font-mono); font-size:11px; color:var(--muted)}
+.tests-scope .ghead .gact{margin-left:auto; display:flex; gap:8px; align-items:center}
+.tests-scope .gtag{font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.04em; border-radius:4px; padding:1px 6px}
+.tests-scope .gtag.adhoc{color:var(--v-run); background:var(--v-run-bg)}
+.tests-scope .gtag.gap{color:var(--v-heals); background:var(--v-heals-bg)}
+.tests-scope .group.nosuite{border-color:color-mix(in srgb,var(--v-heals) 30%,var(--line))}
+.tests-scope .group.nosuite .ghead{background:color-mix(in srgb,var(--v-heals-bg) 30%,var(--panel-2))}
+
+.tests-scope .trow{display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid var(--line); cursor:pointer}
+.tests-scope .trow:last-child{border-bottom:0}
+.tests-scope .trow:hover{background:var(--panel-2)}
+.tests-scope .trow .nmwrap{min-width:0; flex:1}
+.tests-scope .trow .nm{font-family:var(--font-mono); font-size:12.5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.tests-scope .trow .cov{display:flex; gap:5px; flex-wrap:wrap; margin-top:5px}
+.tests-scope .trow .cov .none{font-family:var(--font-mono); font-size:10px; color:var(--faint); font-style:italic}
+.tests-scope .trow .ver{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); flex:none}
+.tests-scope .trow .alsoin{font-family:var(--font-mono); font-size:9.5px; color:var(--v-run); background:var(--v-run-bg); border-radius:4px; padding:0 5px}
+.tests-scope .trow .qtag{font-family:var(--font-mono); font-size:9px; text-transform:uppercase; color:var(--v-park); background:var(--v-park-bg); border-radius:4px; padding:1px 5px}
+.tests-scope .trow .right{display:flex; align-items:center; gap:10px; flex:none}
+.tests-scope .trow .inc{font-family:var(--font-mono); font-size:10.5px; color:var(--v-prov)}
+.tests-scope .trow .inc:hover{text-decoration:underline}
+.tests-scope .trow .ec{font-family:var(--font-mono); font-size:10px; color:var(--v-red)}
+.tests-scope .trow .excl{font-family:var(--font-mono); font-size:9.5px; color:var(--v-park); background:var(--v-park-bg); border-radius:4px; padding:1px 5px}
+.tests-scope .empty{padding:22px; text-align:center; color:var(--faint); font-family:var(--font-mono); font-size:12px}
+
+/* ── labels: the catalog's second grouping axis ────────────────────────────────────────────────────
+   Label chips are HUE-FREE on purpose: tokens.css locks colour+glyph as the verdict language, and a
+   coloured label taxonomy would compete with the one signal that must never be misread. */
+.tests-scope .gtag.lbl{color:var(--ink-2); background:var(--sunk); border:1px solid var(--line)}
+.tests-scope .group.unlab{border-color:var(--line)}       /* neutral: unlabelled is not a coverage gap */
+.tests-scope .ghead .btn .warn{color:var(--v-heals)}
+
+.seglab{font-family:var(--font-mono); font-size:10.5px; color:var(--faint); letter-spacing:.04em; text-transform:uppercase}
+.seg{display:inline-flex; border:1px solid var(--line-2); border-radius:var(--r-sm); overflow:hidden; background:var(--panel)}
+.seg button{font-family:var(--font-mono); font-size:11px; padding:5px 10px; color:var(--muted); border:0; background:none}
+.seg button + button{border-left:1px solid var(--line-2)}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--sunk); color:var(--ink); font-weight:600}
+
+/* launch feedback — every outcome the label-run endpoint can return */
+.launchnote{display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--panel);
+            border:1px solid var(--line-2); border-left:3px solid var(--v-run); border-radius:var(--r);
+            padding:10px 13px; box-shadow:var(--shadow); font-size:12.5px; margin-bottom:12px}
+.launchnote.busy{border-left-color:var(--v-park)}
+.launchnote.spans{border-left-color:var(--v-heals)}
+.launchnote.error{border-left-color:var(--v-red)}
+.launchnote.done{border-left-color:var(--v-green)}
+.launchnote .t{font-family:var(--font-mono); font-size:12px; max-width:78ch}
+.launchnote .dismiss{margin-left:auto}
+.launchnote .reslist{display:flex; gap:8px; flex-wrap:wrap; width:100%}
+.launchnote .res{display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11px;
+                 border:1px solid var(--line); border-radius:20px; padding:2px 9px; color:var(--ink-2)}
+.launchnote .res:hover{border-color:var(--muted); text-decoration:none}

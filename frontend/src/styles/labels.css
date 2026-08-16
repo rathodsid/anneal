@@ -1,0 +1,39 @@
+/* Label chips + the shared label editor/typeahead (components/labels.tsx) — used by the Tests catalog,
+   the test viewer and the author form, so these live in their own file rather than one screen's.
+
+   Chips are HUE-FREE by design: styles/tokens.css locks colour+GLYPH as the verdict language, and a
+   coloured label taxonomy would compete with the one signal that must never be misread. */
+.ddwrap{position:relative; display:inline-flex}
+.dd{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line-2); background:var(--panel);
+    border-radius:var(--r-sm); padding:5px 9px; font-family:var(--font-mono); font-size:11px; color:var(--ink-2)}
+.dd:hover{border-color:var(--muted)}
+.dd .ph{color:var(--faint)} .dd .cv{color:var(--faint)}
+.menu{position:absolute; top:calc(100% + 5px); left:0; z-index:20; min-width:216px; background:var(--panel);
+      border:1px solid var(--line-2); border-radius:var(--r); box-shadow:var(--shadow-lg); padding:5px;
+      display:flex; flex-direction:column; gap:1px}
+.menu .mi{display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:var(--r-sm);
+          font-family:var(--font-mono); font-size:11.5px; color:var(--ink-2); border:0; background:none;
+          text-align:left; width:100%}
+.menu button.mi:hover{background:var(--sunk); color:var(--ink)}
+.menu .mi.on{background:var(--sunk); color:var(--ink)}
+.menu .mi.hint, .menu .mi.bad{cursor:default}
+.menu .mi.hint{color:var(--faint)} .menu .mi.bad{color:var(--v-red)}
+.menu .mi .n{margin-left:auto; color:var(--faint); font-size:10.5px; font-variant-numeric:tabular-nums}
+.menu .sep{height:1px; background:var(--line); margin:4px 2px}
+.menu .mh{font-family:var(--font-mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase;
+          color:var(--faint); padding:4px 8px 2px}
+.menu input.lq{width:100%; border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink);
+               border-radius:var(--r-sm); padding:5px 8px; font-family:var(--font-mono); font-size:11.5px;
+               margin-bottom:3px}
+
+.lchip{display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono); font-size:10px;
+       background:var(--sunk); border:1px solid var(--line); border-radius:20px; padding:1px 7px 1px 6px;
+       color:var(--ink-2); white-space:nowrap}
+.lchip .h{color:var(--faint)}
+.lchip.on{border-color:var(--ink-2); color:var(--ink); background:var(--panel)}
+.lchip.x{padding-right:3px}
+.lchip .rm{color:var(--faint); font-size:11px; line-height:1; padding:0 3px; border:0; background:none; border-radius:50%}
+.lchip .rm:hover{color:var(--v-red); background:var(--v-red-bg)}
+.lchip.add{border-style:dashed; color:var(--muted); background:none}
+.lchip.add:hover{color:var(--ink); border-color:var(--muted)}
+

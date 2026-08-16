@@ -1,0 +1,11 @@
+# N1 — oracle-honesty negative   [expect: RED — this flow MUST fail]
+#
+# This is NOT a flow that should pass. It asserts the presence of a campaign that was
+# never created. Anneal must run it and return RED. If it ever goes green, the oracle is
+# rubber-stamping — a hard parity failure. Doubles as a live check of D7 negative-control
+# calibration and the C-1 honest oracle (pass = !raw).
+#
+# The harness asserts verdict == red for this file; a green here fails verify.sh.
+
+Go to the campaign v2 page. Search for a campaign named
+"anneal-never-created-{{run.token}}" and verify that this campaign appears in the list.

@@ -1,0 +1,98 @@
+/* ============================================================================
+   Anneal console — design tokens (canonical source for the production build)
+   ----------------------------------------------------------------------------
+   The five prototypes (author / money-shot / run-inspector / suite / test-viewer)
+   inline these values so each stays a self-contained, openable preview. THIS file is
+   the single source of truth for the real build — import it once and delete the
+   inlined copies. Layout/screen-specific CSS stays with each component.
+
+   THEME MODEL (locked): light is the DEFAULT. Dark is opt-in via a manual
+   toggle that stamps  <html data-mode="dark">  — it does NOT auto-follow the OS
+   (prefers-color-scheme is intentionally not wired). Style everything through
+   these variables so the toggle works for free.
+
+   VERDICT SYSTEM (locked, colorblind-safe): every verdict is colour + GLYPH +
+   LABEL — never hue alone (this tool is red/green-saturated). Glyphs:
+     green ✓ · green_with_heals ⤴ · provisional ◑(half-ring) · red ✕ ·
+     parked ⏸ · running ◐ · pending ○
+   Semantic verdict colours are SEPARATE from the accent (near-black/near-white).
+   ============================================================================ */
+
+:root{
+  /* type — monospace-forward technical console. Mono for verdicts/chips/IDs/
+     step-intents/durations/data; sans for prose. No webfonts (self-contained). */
+  --font-mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif;
+
+  /* neutrals — cool-biased, chosen (not pure grey) */
+  --bg:#f6f7f8; --panel:#ffffff; --panel-2:#fbfbfc; --sunk:#eef0f2;
+  --ink:#16181d; --ink-2:#3f434b; --muted:#71767f; --faint:#9aa0a8;
+  --line:#e7e8eb; --line-2:#dcdee2;
+
+  /* accent — deliberately quiet; the boldness lives in the verdict system */
+  --accent:#1c1e22; --accent-ink:#ffffff;
+
+  /* verdicts (semantic; independent of --accent) */
+  --v-green:#137a45; --v-green-bg:#e7f4ec;   /* pass, calm            ✓  */
+  --v-heals:#a06a10; --v-heals-bg:#f7efdc;   /* green_with_heals      ⤴  (amber annotation, still a pass) */
+  --v-prov:#3a7d6b;  --v-prov-bg:#e6f1ee;    /* provisional           ◑  (calm, pass-family — NOT amber/alarm) */
+  --v-red:#c5352f;   --v-red-bg:#fbe9e8;     /* red / bug             ✕  */
+  --v-park:#6a7078;  --v-park-bg:#eef0f2;    /* parked_auth/env       ⏸  (blocked, distinct from red) */
+  --v-run:#2f6fb0;   --v-run-bg:#e6eef8;     /* running / info / selection accent  ◐ */
+  --v-warn:#a06a10;  --v-warn-bg:#f7efdc;    /* console warn */
+
+  /* shape + depth */
+  --r:8px; --r-sm:6px;
+  --shadow:0 1px 2px rgba(16,18,23,.06), 0 8px 24px rgba(16,18,23,.08);
+  --shadow-lg:0 12px 40px rgba(16,18,23,.16);
+}
+
+:root[data-mode="dark"]{
+  --bg:#0c0d10; --panel:#141619; --panel-2:#101215; --sunk:#080a0d;
+  --ink:#e8eaed; --ink-2:#c2c6cc; --muted:#8b9098; --faint:#636871;
+  --line:#23262c; --line-2:#2c3037;
+  --accent:#e8eaed; --accent-ink:#0c0d10;
+  --v-green:#3ecf8e; --v-green-bg:#122a20; --v-heals:#e0a838; --v-heals-bg:#2a2210;
+  --v-prov:#6fc3aa;  --v-prov-bg:#112420;  --v-red:#f2726b;   --v-red-bg:#2a1615;
+  --v-park:#9aa0a8;  --v-park-bg:#191c20;  --v-run:#6fb0f2;   --v-run-bg:#101d2b;
+  --v-warn:#e0a838;  --v-warn-bg:#2a2210;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.4);
+  --shadow-lg:0 16px 50px rgba(0,0,0,.55);
+}
+
+/* ---------------------------------------------------------------------------
+   Shared primitives used on every screen. Ported verbatim from the prototypes.
+   Keep these here so the verdict system has one definition.
+   --------------------------------------------------------------------------- */
+.mono{font-family:var(--font-mono)}
+.val{font-family:var(--font-mono); font-size:.9em; background:var(--sunk);
+     border:1px solid var(--line); border-radius:4px; padding:0 5px}
+
+/* verdict pill — usage: <span class="pill v-prov"><span class="g"><span class="g-prov"></span></span>provisional</span> */
+.pill{display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono);
+      font-size:11px; font-weight:600; border-radius:20px; padding:2px 9px 2px 7px; white-space:nowrap}
+.pill .g{display:inline-grid; place-items:center; font-size:11px}
+.g-prov{border:1.5px solid currentColor; border-radius:50%; width:10px; height:10px;
+        background:linear-gradient(90deg,currentColor 50%,transparent 50%)}  /* the provisional half-ring ◑ */
+.v-green{color:var(--v-green); background:var(--v-green-bg)}
+.v-heals{color:var(--v-heals); background:var(--v-heals-bg)}
+.v-prov {color:var(--v-prov);  background:var(--v-prov-bg)}
+.v-red  {color:var(--v-red);   background:var(--v-red-bg)}
+.v-park {color:var(--v-park);  background:var(--v-park-bg)}
+.v-run  {color:var(--v-run);   background:var(--v-run-bg)}
+
+.chip{display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono); font-size:11px;
+      background:var(--sunk); border:1px solid var(--line); border-radius:20px; padding:2px 8px;
+      color:var(--ink-2); white-space:nowrap}
+
+.btn{border:1px solid var(--line-2); background:var(--panel); color:var(--ink); border-radius:var(--r-sm);
+     padding:7px 12px; font-size:12.5px; display:inline-flex; align-items:center; gap:7px; font-weight:500}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+
+/* stubbed / target-state marker — wrap anything not yet backed by an endpoint.
+   Toggle visibility with  body.hide-stubs  */
+.stub{font-family:var(--font-mono); font-size:9.5px; color:var(--v-park);
+      border:1px dashed var(--line-2); border-radius:5px; padding:1px 6px;
+      display:inline-flex; gap:5px; align-items:center; background:var(--panel-2)}
+body.hide-stubs .stub{display:none}

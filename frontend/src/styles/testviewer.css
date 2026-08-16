@@ -1,0 +1,93 @@
+/* Test viewer — screen CSS. Reuses .tabs from runs.css.
+   The run-history table classes are namespaced (.hr*) so they don't collide with the runs-list .rtable. */
+
+.tv .content{max-width:1060px}
+
+.thead{display:flex; align-items:flex-start; gap:16px; margin-bottom:14px}
+.thead h1{margin:0 0 7px; font-family:var(--font-mono); font-size:20px; letter-spacing:-.01em}
+.thead .meta{display:flex; gap:7px; flex-wrap:wrap}
+.thead .acts{margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+/* labels: catalog metadata, edited here — deliberately its own row under the read-only artifact chips */
+.labelrow{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:9px}
+.labelrow .k{font-family:var(--font-mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+             color:var(--faint); margin-right:2px}
+.labelrow .lerr{font-family:var(--font-mono); font-size:10.5px; color:var(--v-red)}
+
+.health{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:14px 16px; margin-bottom:18px; display:flex; align-items:center; gap:20px; flex-wrap:wrap}
+.health .blk{display:flex; flex-direction:column; gap:3px}
+.health .k{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint)}
+.health .v{font-size:16px; font-weight:700} .health .v small{font-size:11px; font-weight:500; color:var(--muted)}
+.spark{display:flex; align-items:flex-end; gap:3px; height:34px}
+.spark i{width:8px; border-radius:2px; display:block}
+.sp-green{background:var(--v-green)} .sp-heals{background:var(--v-heals)} .sp-prov{background:var(--v-prov)} .sp-red{background:var(--v-red)} .sp-park{background:var(--v-park)}
+
+.pane{display:none} .pane.on{display:block}
+
+.card{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:14px 16px; margin-bottom:14px}
+.card h3{margin:0 0 4px; font-size:13px} .card .cap{color:var(--muted); font-size:11.5px; margin-bottom:10px}
+h5.sec{margin:0 0 9px; font-family:var(--font-mono); font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.kv{display:grid; grid-template-columns:auto 1fr; gap:7px 16px; font-size:12.5px}
+.kv .k{color:var(--muted); font-family:var(--font-mono); font-size:11px}
+.kv .v{font-size:12.5px}
+.surf{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); background:var(--sunk); border:1px solid var(--line); border-radius:4px; padding:1px 6px}
+.quote{border-left:2px solid var(--v-run); padding:4px 0 4px 12px; color:var(--ink-2); font-size:13px; font-style:italic}
+.tv-empty{color:var(--faint); font-family:var(--font-mono); font-size:11.5px; padding:8px 0}
+
+/* golden reference */
+.golden{border-color:color-mix(in srgb,var(--v-heals) 32%,var(--line))}
+.ghead{display:flex; align-items:center; gap:10px; margin-bottom:12px}
+.gvideo{position:relative; border-radius:8px; overflow:hidden; border:1px solid var(--line-2); background:#0a0b0e; aspect-ratio:16/9; max-height:360px}
+.gvideo video{width:100%; height:100%; object-fit:contain; background:#000; display:block}
+.poster{position:absolute; inset:0}
+.poster .pmock{position:absolute; inset:0; display:grid; place-items:center; color:#3a3f47; font-family:var(--font-mono); font-size:13px; letter-spacing:.18em; background:radial-gradient(130% 130% at 50% 28%, #17191e, #0a0b0e); text-align:center; padding:20px}
+.poster .play{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.94);color:#0a0b0e;border:0;display:grid;place-items:center;font-size:21px; box-shadow:0 8px 30px rgba(0,0,0,.5); cursor:pointer}
+.gmeta{display:flex; gap:9px; align-items:center; margin-top:11px; font-family:var(--font-mono); font-size:11px; color:var(--muted); flex-wrap:wrap}
+
+/* flow steps */
+.fstep{display:flex; gap:11px; padding:10px 0; border-bottom:1px solid var(--line)}
+.fstep:last-child{border-bottom:0}
+.fstep .n{font-family:var(--font-mono); font-size:11px; color:var(--faint); width:16px; flex:none; text-align:right}
+.fstep .body{flex:1; min-width:0}
+.fstep .intent{font-size:12.5px}
+.fstep .act{font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--v-run); background:var(--v-run-bg); border-radius:4px; padding:1px 6px; margin-right:7px}
+.fstep .act.assert{color:var(--v-green); background:var(--v-green-bg)} .fstep .act.goto{color:var(--muted); background:var(--sunk)}
+.fstep .act.mod{color:var(--v-heals); background:var(--v-heals-bg)}
+.fstep .loc{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-top:4px}
+.fstep .loc .fb{color:var(--faint)}
+.oracle{border:1px solid color-mix(in srgb,var(--v-green) 30%,var(--line)); background:color-mix(in srgb,var(--v-green-bg) 40%,var(--panel))}
+.pred{display:flex; gap:9px; align-items:center; padding:7px 0; border-bottom:1px dashed var(--line); font-family:var(--font-mono); font-size:11.5px}
+.pred:last-child{border-bottom:0}
+.pred .kind{font-size:9.5px; text-transform:uppercase; color:var(--muted); background:var(--sunk); border-radius:4px; padding:1px 6px; flex:none}
+
+/* versions timeline */
+.vitem{display:flex; gap:12px; padding-bottom:16px; position:relative}
+.vitem::before{content:""; position:absolute; left:7px; top:20px; bottom:-4px; width:2px; background:var(--line)}
+.vitem:last-child::before{display:none}
+.vitem .dot{width:16px;height:16px;border-radius:50%; flex:none; margin-top:2px; border:3px solid var(--panel); background:var(--v-green); z-index:1}
+.vitem.prov .dot{background:var(--v-prov)} .vitem.heal .dot{background:var(--v-heals)}
+.vitem .vb{flex:1; min-width:0}
+.vitem .vh{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.vitem .vv{font-family:var(--font-mono); font-size:13px; font-weight:700}
+.vitem .head{font-family:var(--font-mono); font-size:9.5px; color:var(--accent-ink); background:var(--accent); border-radius:20px; padding:1px 7px}
+.vitem .vr{font-size:12.5px; color:var(--ink-2); margin-top:5px}
+.vitem .vmeta{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-top:5px; display:flex; gap:12px; flex-wrap:wrap}
+
+/* run history table (namespaced) */
+.hrtable{border:0}
+.hrhead,.hrrow{display:grid; grid-template-columns:150px 60px 1.3fr 120px 90px 110px; gap:12px; align-items:center; padding:9px 4px}
+.hrhead{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); border-bottom:1px solid var(--line)}
+.hrrow{border-bottom:1px solid var(--line); cursor:pointer; font-size:12px; width:100%; text-align:left; background:none; border-left:0; border-right:0; border-top:0; font-family:inherit; color:var(--ink)}
+.hrrow:last-child{border-bottom:0} .hrrow:hover{background:var(--panel-2)}
+.hrrow .env{font-family:var(--font-mono); font-size:10.5px; color:var(--muted)}
+.hrrow .off{color:var(--v-park); background:var(--v-park-bg); border-radius:4px; padding:0 5px; font-size:9px; margin-left:5px}
+.hrrow .ec{font-family:var(--font-mono); font-size:10px; color:var(--v-red)}
+.hrrow .ver{font-family:var(--font-mono); font-size:11px; color:var(--muted)}
+.hrrow .when{font-family:var(--font-mono); font-size:10.5px; color:var(--muted)}
+
+/* changelog */
+.clog{display:flex; gap:11px; padding:11px 0; border-bottom:1px solid var(--line)}
+.clog:last-child{border-bottom:0}
+.clog .kind{font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; border-radius:4px; padding:1px 7px; flex:none; height:fit-content; margin-top:1px}
+.kind-heal{color:var(--v-heals); background:var(--v-heals-bg)} .kind-reauthor{color:var(--v-prov); background:var(--v-prov-bg)} .kind-authored{color:var(--v-green); background:var(--v-green-bg)}
+.kind-ruling{color:var(--v-run); background:var(--v-run-bg)} .kind-rebaseline{color:var(--muted); background:var(--sunk)}
+.clog .cs{font-size:12.5px} .clog .cw{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-top:3px}

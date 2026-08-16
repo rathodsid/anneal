@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "project_id": "golden",
+  "test_id": "login-smoke",
+  "version": 1,
+  "state": "frozen",
+  "persona": "member",
+  "params": {},
+  "lineage": {
+    "parent": null, "reason": "authored", "ruling": "canonical", "incident": null,
+    "triggered_by": "m1_seed", "verified_against": "golden-local"
+  },
+  "intent": {
+    "sources": [{ "kind": "nl",
+      "verbatim": "Log in and confirm the authenticated app shell renders." }],
+    "descriptor": "login lands on the authenticated shell"
+  },
+  "policy": { "exclusive": false, "mutating": false },
+  "steps": [
+    { "module": { "ref": "login", "version": 4 } },
+    { "id": "s2", "intent": "confirm the authenticated nav is present", "action": "assert",
+      "assert": { "state": "visible",
+        "target": { "strategy": "testid", "selector": "nav-authenticated" } },
+      "postcondition": null, "budget_ms": 8000 }
+  ]
+}

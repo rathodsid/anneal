@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "project_id": "golden",
+  "test_id": "campaigns-list-smoke",
+  "version": 1,
+  "state": "frozen",
+  "persona": "member",
+  "params": {},
+  "lineage": {
+    "parent": null, "reason": "authored", "ruling": "canonical", "incident": null,
+    "triggered_by": "m1_seed", "verified_against": "golden-local"
+  },
+  "intent": {
+    "sources": [{ "kind": "nl",
+      "verbatim": "Log in and confirm the campaigns list renders with the seeded campaign." }],
+    "descriptor": "campaigns list renders after login"
+  },
+  "policy": { "exclusive": false, "mutating": false },
+  "steps": [
+    { "module": { "ref": "login", "version": 4 } },
+    { "id": "s2", "intent": "open the campaigns list", "action": "goto", "arg": "/campaigns",
+      "postcondition": {
+        "all": [{ "kind": "element", "state": "visible",
+                  "target": { "strategy": "testid", "selector": "campaigns-table",
+                              "fallbacks": { "role": "table" } } }],
+        "budget_ms": 10000 } },
+    { "id": "s3", "intent": "verify the seeded campaign is listed", "action": "assert",
+      "assert": { "state": "visible",
+        "target": { "strategy": "text", "selector": "Welcome Campaign",
+                    "within": { "testid": "campaigns-table" } } },
+      "postcondition": null, "budget_ms": 10000 }
+  ]
+}

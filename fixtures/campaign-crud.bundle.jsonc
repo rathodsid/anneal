@@ -1,0 +1,221 @@
+// ============================================================================
+// campaign-crud.bundle.jsonc — the ground-truth fixture (prototype, pre-LLD)
+//
+// Purpose: hand-written BEFORE the JSON Schema exists, per the fixture-first
+// discipline. This is the reference campaign-CRUD flow against the golden
+// app, expressed as a frozen
+// Anneal Bundle. The LLD's Bundle JSON Schema is derived FROM this file, and
+// M0's golden test is: this bundle compiles to a step plan and replays green.
+//
+// SCHEMA DECISIONS THIS FIXTURE FORCES (each marked ◆ inline):
+//   ◆1  `assert` must be a v1 action kind — D16's list (goto·click·fill·
+//       select·upload·keypress·hover) has no way to say "verify the row is
+//       visible" as a step. Includes `negative: true` (the C-1 honest oracle).
+//       ✓ RULED 2026-07-09 → D35. Corrected same day: `negative` is for
+//       non-visibility predicates only and must never stack on a
+//       visible/hidden state assert (double negation) — LLD compile rule.
+//   ◆2  The placeholder vocabulary needs dates, not just {{run.token}} —
+//       the redesign added REQUIRED Start/End Date fields; a frozen literal
+//       date rots. Proposed: {{run.today}} / {{run.today+30d}}.
+//       ✓ RULED 2026-07-09 → D36 (closed registry, TargetProfile timezone).
+//   ◆3  Targets need row-relative scoping — `within` — for row menus and
+//       entity-scoped asserts (NUANCES A-2). Without it, s11/s12/s14 are
+//       unexpressible and §8's entity-scoped-oracle rule has no syntax.
+//   ◆4  Destructive steps carry `destructive: true` so the D15 guardrail is
+//       an executor check on a declared field, not an inference.
+//   ◆5  Asserts against eventually-consistent lists need `reload_on_miss`
+//       (A-8's reload-on-miss / assert_not_visible-with-refetch behaviors).
+//   ◆6  Canonical-environment binding (D13) is NOT in the bundle — it lives
+//       on the Test row. The bundle only records `verified_against` facts.
+//   ◆7  Postcondition kinds used here: url · network · element(visible|
+//       hidden) · value_is. (`eventually` / `effect_readback` reserved, D30.)
+// ============================================================================
+{
+  "schema_version": 1,
+  "project_id": "golden",
+  "test_id": "campaign-crud",
+  "version": 1,
+  "state": "frozen",                 // draft → calibrated → frozen (D24)
+  "persona": "member",               // one credential binding (D20)
+  "params": {},                      // v1: single default row (D22)
+
+  "lineage": {
+    "parent": null,
+    "reason": "authored",
+    "ruling": "canonical",
+    "incident": null,
+    "triggered_by": "author_run_0007",
+    "verified_against": "golden"   // ◆6 the fact; the binding is on Test
+  },
+
+  "intent": {
+    "sources": [
+      { "kind": "nl",
+        "verbatim": "Create a campaign, verify it appears in the campaigns list, then delete it and verify it is gone." }
+    ],
+    "descriptor": "user can create, verify, and delete a campaign"
+  },
+
+  "policy": { "exclusive": false, "mutating": true },
+
+  "steps": [
+
+    // -- auth: module pin (D19). Inlined at compile time; step_signatures for
+    //    inlined steps derive from (module ref + intra-module step id), never
+    //    inlined position (§9).
+    { "module": { "ref": "login", "version": 4 } },
+
+    { "id": "s2", "intent": "open the campaigns list",
+      "action": "goto", "arg": "/campaigns",
+      "postcondition": {
+        "all": [ { "kind": "element", "state": "visible",
+                   "target": { "strategy": "testid", "selector": "campaigns-table",
+                               "fallbacks": { "role": "table" } } } ],
+        "budget_ms": 10000 } },
+
+    { "id": "s3", "intent": "start creating a campaign",
+      "action": "click",
+      // benchmark note: header button renamed "Create Campaign" → "Add
+      // Campaign" but the testid survived — exactly why testid is rung 1
+      // and the text rung is a fallback that would report rung_used=fallback.
+      "target": { "strategy": "testid", "selector": "btn-add-campaign",
+                  "fallbacks": { "role": "button", "text": "Add Campaign" } },
+      "postcondition": {
+        "all": [ { "kind": "element", "state": "visible",
+                   "target": { "strategy": "testid", "selector": "input-campaign-name" } } ],
+        "budget_ms": 10000 } },
+
+    { "id": "s4", "intent": "name the campaign",
+      "action": "fill", "arg": "Campaign {{run.token}}",   // volatile, always (D5)
+      "target": { "strategy": "testid", "selector": "input-campaign-name",
+                  "fallbacks": { "role": "textbox", "text": "Campaign name" } },
+      "postcondition": {
+        "all": [ { "kind": "value_is", "equals": "Campaign {{run.token}}",
+                   "target": { "strategy": "testid", "selector": "input-campaign-name" } } ],
+        "budget_ms": 5000 } },
+
+    { "id": "s5", "intent": "set the required start date",
+      "action": "fill", "arg": "{{run.today}}",            // ◆2 date placeholder
+      "target": { "strategy": "testid", "selector": "input-start-date",
+                  "fallbacks": { "role": "textbox", "text": "Start Date" } },
+      "postcondition": {
+        "all": [ { "kind": "value_is", "equals": "{{run.today}}",
+                   "target": { "strategy": "testid", "selector": "input-start-date" } } ],
+        "budget_ms": 5000 } },
+
+    { "id": "s6", "intent": "set the required end date",
+      "action": "fill", "arg": "{{run.today+30d}}",        // ◆2
+      "target": { "strategy": "testid", "selector": "input-end-date",
+                  "fallbacks": { "role": "textbox", "text": "End Date" } },
+      "postcondition": {
+        "all": [ { "kind": "value_is", "equals": "{{run.today+30d}}",
+                   "target": { "strategy": "testid", "selector": "input-end-date" } } ],
+        "budget_ms": 5000 } },
+
+    { "id": "s7", "intent": "choose the campaign agent",
+      // combobox choreography (open-if-closed, type-to-filter, pick BY VISIBLE
+      // TEXT, verify commit) lives in the executor (NUANCES A-4) and the
+      // idiom variant in TerritoryNotes (D25) — the step only declares intent.
+      "action": "select", "arg": "Aria",
+      "target": { "strategy": "testid", "selector": "select-campaign-agent",
+                  "fallbacks": { "role": "combobox", "text": "Agent" } },
+      "postcondition": {
+        "all": [ { "kind": "element", "state": "visible",
+                   "target": { "strategy": "text", "selector": "Aria",
+                               "within": { "testid": "select-campaign-agent" } } } ],
+        "budget_ms": 8000 } },
+
+    { "id": "s8", "intent": "submit the create form",
+      "action": "click",
+      "target": { "strategy": "testid", "selector": "btn-campaign-create-submit",
+                  "fallbacks": { "role": "button", "text": "Create" } },
+      "postcondition": {
+        "all": [
+          { "kind": "url", "match": ".*/campaign-v2/[^/]+" },
+          // the network oracle (§5): listener registers BEFORE the click fires
+          { "kind": "network", "method": "POST",
+            "path": "/api/v2/campaigns", "status": "2xx" }
+        ],
+        "budget_ms": 15000 } },
+
+    { "id": "s9", "intent": "return to the campaigns list",
+      "action": "goto", "arg": "/campaigns",
+      "postcondition": {
+        "all": [ { "kind": "element", "state": "visible",
+                   "target": { "strategy": "testid", "selector": "campaigns-table" } } ],
+        "budget_ms": 10000 } },
+
+    { "id": "s10", "intent": "verify the campaign appears in the list",
+      "action": "assert",                                   // ◆1
+      "assert": { "state": "visible",
+        "target": { "strategy": "text", "selector": "Campaign {{run.token}}",
+                    "within": { "testid": "campaigns-table" } } },  // ◆3 entity-scoped (§8)
+      "reload_on_miss": true,                               // ◆5 eventual consistency
+      "postcondition": null,
+      "budget_ms": 10000 },
+
+    { "id": "s11", "intent": "open the row menu for this campaign",
+      "action": "click",
+      "target": { "strategy": "role", "selector": "button",
+                  "within": { "row_label": "Campaign {{run.token}}" },  // ◆3 A-2 row-relative
+                  "fallbacks": { "testid": "btn-row-menu" } },
+      "postcondition": {
+        "all": [ { "kind": "element", "state": "visible",
+                   "target": { "strategy": "role", "selector": "menu" } } ],
+        "budget_ms": 5000 } },
+
+    { "id": "s12", "intent": "choose Delete from the row menu",
+      // benchmark note: this menu item is where "Delete campaign" → "Delete"
+      // drifted. Menu items rarely carry testids; text is the primary rung
+      // here BY AUTHORING CHOICE, which is why the drift red was honest.
+      "action": "click",
+      "target": { "strategy": "text", "selector": "Delete",
+                  "within": { "role": "menu" },
+                  "fallbacks": { "role": "menuitem" } },
+      "postcondition": {
+        "all": [ { "kind": "element", "state": "visible",
+                   "target": { "strategy": "role", "selector": "dialog" } } ],
+        "budget_ms": 5000 } },
+
+    { "id": "s13", "intent": "confirm the deletion",
+      "action": "click",
+      "destructive": true,                                  // ◆4 D15 guardrail:
+      // executor refuses unless the entity identity in scope carries the
+      // current run token — here the dialog names "Campaign {{run.token}}".
+      "target": { "strategy": "role", "selector": "button",
+                  "within": { "role": "dialog" },
+                  "fallbacks": { "text": "Delete" } },
+      "postcondition": {
+        "all": [
+          { "kind": "network", "method": "DELETE",
+            "path": "/api/v2/campaigns/{id}", "status": "2xx" },  // templated (§5)
+          { "kind": "element", "state": "hidden",
+            "target": { "strategy": "role", "selector": "dialog" } }
+        ],
+        "budget_ms": 15000 } },
+
+    { "id": "s14", "intent": "verify the campaign is gone from the list",
+      "action": "assert",                                   // ◆1
+      // "hidden" alone IS the "gone" oracle (same semantics as s13's dialog-
+      // hidden postcondition). `negative` (C-1, pass = !raw) exists in the
+      // schema for non-visibility predicates only — COMPILE RULE for the LLD:
+      // negative must never stack on a visible/hidden state assert (the pair
+      // is a double negation that inverts the oracle's intent).
+      "assert": { "state": "hidden",
+        "target": { "strategy": "text", "selector": "Campaign {{run.token}}",
+                    "within": { "testid": "campaigns-table" } } },
+      "reload_on_miss": true,                               // ◆5 refetch before honoring "gone"
+      "postcondition": null,
+      "budget_ms": 10000 }
+  ],
+
+  // Calibration (§7): DOM asserts get the negative control (statically
+  // evaluated against stored pre-action snapshots); network expectations get
+  // the discriminativeness check against the authoring run's full network log.
+  "calibration": {
+    "s10": { "negative_control": "failed_on_pre_state" },       // row absent before create
+    "s14": { "negative_control": "failed_on_pre_state" },       // row present before delete
+    "s8":  { "network_discriminativeness": "unique_in_authoring_log" },
+    "s13": { "network_discriminativeness": "unique_in_authoring_log" }
+  }
+}

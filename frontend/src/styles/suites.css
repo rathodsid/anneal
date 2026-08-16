@@ -1,0 +1,42 @@
+/* Suites index — all suites in the project. Name + member count are real from
+   GET /suites; New-suite POSTs {name, member_test_ids}; Run launches (202) and polls /suite_runs/{id}.
+   The last-run column (verdict · when · trigger · incident) has no source today — no suite_runs list,
+   no enrichment on GET /suites (gap G1) → the column stays behind .stub. Saved-vs-ad-hoc is the G4 name
+   heuristic (selection-run / ui-run ⇒ ad-hoc). Modal reuses suite.css .scrim/.modal/.catalog/.crow.
+   Scoped under .suites-scope so screen-local class names never collide with other screens' CSS. */
+.suites-scope .hdrow{display:flex; align-items:flex-start; gap:16px; margin-bottom:6px}
+.suites-scope .hdrow h1{margin:0 0 4px; font-size:20px; letter-spacing:-.01em}
+.suites-scope .lede{color:var(--muted); font-size:12.5px; margin:0}
+.suites-scope .hdrow .btn{margin-left:auto}
+.suites-scope .defnote{font-size:12px; color:var(--muted); background:var(--panel-2); border:1px solid var(--line); border-radius:var(--r); padding:9px 13px; margin:14px 0 16px}
+.suites-scope .defnote b{color:var(--ink-2)}
+.suites-scope .controls{display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap}
+
+.suites-scope .table{border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--panel)}
+.suites-scope .thead,.suites-scope .srow{display:grid; grid-template-columns:2fr 90px 160px 150px 90px; gap:14px; align-items:center; padding:11px 16px}
+.suites-scope .thead{font-family:var(--font-mono); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); border-bottom:1px solid var(--line); background:var(--panel-2)}
+.suites-scope .srow{border-bottom:1px solid var(--line); cursor:pointer}
+.suites-scope .srow:last-child{border-bottom:0}
+.suites-scope .srow:hover{background:var(--panel-2)}
+.suites-scope .srow .nm{font-family:var(--font-mono); font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px}
+.suites-scope .srow .members{font-family:var(--font-mono); font-size:12px; color:var(--ink-2)}
+.suites-scope .srow .members span{color:var(--faint)}
+.suites-scope .srow .when{font-family:var(--font-mono); font-size:10.5px; color:var(--muted)}
+.suites-scope .stag{font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.04em; border-radius:4px; padding:1px 5px; color:var(--v-run); background:var(--v-run-bg)}
+.suites-scope .rowbtn{justify-self:end}
+.suites-scope .empty{padding:26px; text-align:center; color:var(--faint); font-family:var(--font-mono); font-size:12px}
+
+/* run modal (launch + poll) — mirrors Suite.tsx's launch flow, compact for the index */
+.suites-scope .runctl{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px}
+.suites-scope .runctl .selctl{display:inline-flex; align-items:center; gap:6px}
+.suites-scope .runctl .lab{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted)}
+.suites-scope .runctl select{border:1px solid var(--line-2); background:var(--panel); color:var(--ink); border-radius:var(--r-sm); padding:6px 9px; font-size:12px}
+.suites-scope .rt-row{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-family:var(--font-mono); font-size:12px}
+.suites-scope .rt-row:last-child{border-bottom:0}
+.suites-scope .rt-row.pending{color:var(--faint)}
+.suites-scope .rt-row .k{flex:1; min-width:0}
+.suites-scope .rt-row .d{color:var(--muted); font-size:10.5px}
+.suites-scope .rt-row .ec{color:var(--v-red); font-size:10px}
+.suites-scope .suiteverdict{display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid var(--line)}
+.suites-scope .suiteverdict .lbl{font-family:var(--font-mono); font-size:11px; color:var(--muted)}
+.suites-scope .busy409{background:var(--v-red-bg); color:var(--v-red); border:1px solid color-mix(in srgb,var(--v-red) 30%,transparent); border-radius:var(--r-sm); padding:11px 13px; font-size:12px; line-height:1.5}

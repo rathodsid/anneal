@@ -1,0 +1,56 @@
+/* Targets & credentials — . Scoped under .tauth (its .card/.kv/
+   .grid/.lede would clash with other screens' globals). Reuses .scrim/.modal/.modal-h/.modal-b (suite.css). */
+
+.tauth .content{max-width:1080px}
+.k-clerk{color:var(--v-run); background:var(--v-run-bg)} .k-form{color:var(--ink-2); background:var(--sunk)} .k-none{color:var(--muted); background:var(--sunk)}
+.tauth .lede{color:var(--muted); font-size:12.5px; margin:0}
+.tauth h1{margin:0 0 4px; font-size:20px; letter-spacing:-.01em}
+.designbanner{border:1px dashed var(--line-2); background:var(--panel-2); border-radius:var(--r); padding:9px 13px; margin:16px 0 18px; font-family:var(--font-mono); font-size:11px; color:var(--muted); display:flex; gap:9px; align-items:center; flex-wrap:wrap}
+.designbanner b{color:var(--ink-2)}
+.hdrow{display:flex; align-items:flex-start; gap:16px}
+.hdrow .btn{margin-left:auto}
+.tauth .grid{display:grid; grid-template-columns:300px 1fr; gap:16px; margin-top:4px}
+@media (max-width:900px){ .tauth .grid{grid-template-columns:1fr} }
+
+.tlist{display:flex; flex-direction:column; gap:8px}
+.tcard{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:11px 13px; cursor:pointer; width:100%; text-align:left; font-family:inherit; color:var(--ink)}
+.tcard:hover{border-color:var(--muted)}
+.tcard.sel{border-color:var(--v-run); box-shadow:0 0 0 1px var(--v-run) inset}
+.tcard .t1{display:flex; align-items:center; gap:8px}
+.tcard .k{font-family:var(--font-mono); font-size:12.5px; font-weight:600}
+.tcard .u{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.tcard .t2{display:flex; align-items:center; gap:8px; margin-top:9px; flex-wrap:wrap}
+.sdot{display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono); font-size:10.5px}
+.sdot .d{width:8px;height:8px;border-radius:50%}
+.sdot.valid .d{background:var(--v-green)} .sdot.valid{color:var(--v-green)}
+.sdot.expired .d{background:var(--v-park)} .sdot.expired{color:var(--v-park)}
+.sdot.human .d{background:var(--v-park); box-shadow:0 0 0 2px color-mix(in srgb,var(--v-park) 30%,transparent)} .sdot.human{color:var(--v-park)}
+.sdot.none .d{background:var(--faint)} .sdot.none{color:var(--faint)}
+
+.detail{display:flex; flex-direction:column; gap:14px; min-width:0}
+.tauth .card{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:15px 17px}
+.tauth .card h3{margin:0; font-size:14px; font-family:var(--font-mono)}
+.tauth .card .sub{color:var(--muted); font-size:12px; margin-top:3px}
+.tauth h5.sec{margin:0 0 10px; font-family:var(--font-mono); font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); font-weight:600; display:flex; align-items:center; gap:8px}
+.tauth .kv{display:grid; grid-template-columns:auto 1fr; gap:8px 16px; font-size:12.5px}
+.tauth .kv .k{color:var(--muted); font-family:var(--font-mono); font-size:11px}
+.tauth .kv .v{font-family:var(--font-mono); font-size:12px}
+.dhead{display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap}
+
+.chain{display:flex; flex-direction:column; gap:7px}
+.layer{display:flex; align-items:center; gap:10px; padding:9px 11px; border:1px solid var(--line); border-radius:var(--r-sm); font-family:var(--font-mono); font-size:11.5px; color:var(--muted)}
+.layer .n{width:16px; text-align:center; color:var(--faint)}
+.layer .lbody{flex:1; min-width:0}
+.layer .lt{color:var(--ink-2)}
+.layer .ls{color:var(--faint); font-size:10px; margin-top:2px}
+.enc{display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11px; margin-top:11px; color:var(--v-green)}
+.enc.bad{color:var(--v-red)}
+
+.outcome{border-radius:var(--r-sm); padding:11px 13px; font-size:12.5px}
+.outcome.human{border:1px solid color-mix(in srgb,var(--v-park) 40%,var(--line)); background:var(--v-park-bg)}
+.acts{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center}
+
+.field{margin-bottom:13px} .field.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.field label{display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.field input, .field select{width:100%; border:1px solid var(--line-2); background:var(--panel); color:var(--ink); border-radius:var(--r-sm); padding:8px 11px; font-size:13px; font-family:var(--font-sans)}
+.field .hint{font-family:var(--font-mono); font-size:10px; color:var(--faint); margin-top:5px}

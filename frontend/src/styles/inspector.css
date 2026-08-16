@@ -1,0 +1,95 @@
+/* Run inspector — screen CSS. Adapted for real data: the
+   mock per-phase "scene" builders are replaced by the run's real screenshot artifact + artifact
+   links; the step tree is a flat list (no mock modules/atomics). */
+
+.runmeta{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.insp{display:grid; grid-template-columns:340px 1fr 404px; flex:1; min-height:0}
+.insp-wrap{display:flex; flex-direction:column; flex:1; min-height:0}
+.app:has(.insp){}
+@media (max-width:1240px){ .insp{grid-template-columns:300px 1fr} .insp-detail{display:none} }
+
+/* left — step tree */
+.steps{border-right:1px solid var(--line); background:var(--panel-2); overflow:auto; min-height:0}
+.steps-h{padding:12px 16px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--panel-2); z-index:2; display:flex; align-items:baseline; gap:8px}
+.steps-h .t{font-weight:600; font-size:13px} .steps-h .n{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-left:auto}
+.step{display:flex; align-items:center; gap:10px; padding:9px 12px; cursor:pointer; appearance:none; border:0; border-left:2px solid transparent; border-bottom:1px solid var(--line); width:100%; background:none; text-align:left; font-family:inherit}
+.step:hover{background:var(--panel)}
+.step.sel{background:var(--v-run-bg); border-left-color:var(--v-run)}
+.step .sg{width:16px; flex:none; text-align:center; font-size:13px}
+.step .si{min-width:0; flex:1}
+.step .intent{font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink)}
+.step .act{font-family:var(--font-mono); font-size:10px; color:var(--muted)}
+.step .dur{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); flex:none; font-variant-numeric:tabular-nums}
+.sg.pass{color:var(--v-green)} .sg.heal{color:var(--v-heals)} .sg.fail{color:var(--v-red)} .sg.skip{color:var(--muted)} .sg.run{color:var(--v-run)}
+
+/* center — evidence stage */
+.stage{display:flex; flex-direction:column; min-width:0; border-right:1px solid var(--line); background:var(--bg)}
+.frame-head{display:flex; align-items:center; gap:10px; padding:11px 16px; border-bottom:1px solid var(--line); background:var(--panel); flex-wrap:wrap}
+.frame-head .lab{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em}
+.arts{display:inline-flex; gap:6px; flex-wrap:wrap}
+.art{display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink-2); border-radius:20px; padding:3px 9px; font-family:var(--font-mono); font-size:10.5px; text-decoration:none}
+.art:hover{border-color:var(--muted); text-decoration:none}
+.art.off{opacity:.45; pointer-events:none}
+.frame-head .now{margin-left:auto; font-family:var(--font-mono); font-size:11px; color:var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:45%}
+.frame-wrap{flex:1; min-height:0; display:grid; place-items:center; padding:18px; overflow:hidden}
+.browser{width:100%; max-width:940px; max-height:100%; display:flex; flex-direction:column; border-radius:10px; overflow:hidden; border:1px solid var(--line-2); box-shadow:var(--shadow-lg); background:#16181d}
+.chrome{display:flex; align-items:center; gap:9px; padding:8px 12px; background:#1a1d22; border-bottom:1px solid #23262c}
+.chrome .dots{display:flex; gap:6px} .chrome .dots i{width:10px;height:10px;border-radius:50%;display:block}
+.chrome .u{flex:1; font-family:var(--font-mono); font-size:10.5px; color:#9aa0a8; background:#0f1115; border:1px solid #23262c; border-radius:6px; padding:4px 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.chrome .badge{font-family:var(--font-mono); font-size:9.5px; color:#cfd3da; background:#23262c; border-radius:20px; padding:2px 8px; flex:none}
+.shot{position:relative; aspect-ratio:16/9; background:#0f1115}
+.shot img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block}
+.shot .noshot{position:absolute; inset:0; display:grid; place-items:center; color:#6a7078; font-family:var(--font-mono); font-size:11px; text-align:center; padding:20px}
+.timeline{border-top:1px solid var(--line); background:var(--panel); padding:12px 16px; display:flex; align-items:center; gap:14px}
+.play{width:40px;height:40px;border-radius:50%; border:1px solid var(--line-2); background:var(--panel); display:grid; place-items:center; font-size:15px; color:var(--ink); flex:none}
+.play:hover{border-color:var(--v-run); color:var(--v-run)}
+.tl-mid{flex:1; min-width:0; display:flex; flex-direction:column; gap:7px}
+.tl-cap{display:flex; align-items:baseline; gap:10px; font-family:var(--font-mono); font-size:11px}
+.tl-cap .stepname{color:var(--ink); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.tl-cap .idx{color:var(--muted); flex:none} .tl-cap .time{margin-left:auto; color:var(--muted); flex:none; font-variant-numeric:tabular-nums}
+.tl-track{position:relative; height:16px; cursor:pointer}
+.tl-line{position:absolute; left:0; right:0; top:7px; height:4px; background:var(--sunk); border-radius:3px}
+.tl-fill{position:absolute; left:0; top:7px; height:4px; background:var(--v-green); border-radius:3px; transition:width .25s}
+.tl-mk{position:absolute; top:3px; width:12px; height:12px; border-radius:50%; transform:translateX(-50%); border:2px solid var(--panel); background:var(--v-green); cursor:pointer; padding:0}
+.tl-mk:hover{transform:translateX(-50%) scale(1.25)}
+.tl-mk.heal{background:var(--v-heals)} .tl-mk.fail{background:var(--v-red)} .tl-mk.skip{background:var(--v-park)}
+.tl-mk.cur{box-shadow:0 0 0 3px color-mix(in srgb,var(--v-run) 35%,transparent)}
+.tl-head{position:absolute; top:-2px; width:2px; height:20px; background:var(--ink); transform:translateX(-50%); transition:left .25s}
+
+/* right — detail with tabs */
+.insp-detail{display:flex; flex-direction:column; min-height:0; background:var(--panel)}
+.dtabs{display:flex; gap:2px; padding:8px 12px 0; border-bottom:1px solid var(--line); flex:none}
+.dtabs button{border:0; background:transparent; color:var(--muted); padding:9px 11px; font-size:12px; font-family:var(--font-mono); border-bottom:2px solid transparent; margin-bottom:-1px; display:flex; align-items:center; gap:6px}
+.dtabs button[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--v-run); font-weight:600}
+.dtabs .badge{font-size:9.5px; color:var(--muted); background:var(--sunk); border-radius:20px; padding:0 5px; min-width:15px; text-align:center}
+.dtabs .badge.err{color:var(--v-red); background:var(--v-red-bg)}
+.dtabs .dot{width:6px;height:6px;border-radius:50%;background:var(--v-red)}
+.dbody{overflow:auto; min-height:0; flex:1; padding:16px 18px}
+.d-crumb{font-family:var(--font-mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px}
+.d-title{display:flex; align-items:flex-start; gap:10px; margin-bottom:16px}
+.d-title .tt{font-size:15px; font-weight:600; line-height:1.35}
+.dsec{margin-bottom:18px}
+.dsec h5{margin:0 0 8px; font-family:var(--font-mono); font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.reason{font-size:12.5px; color:var(--ink-2); line-height:1.6}
+.rung{display:flex; align-items:center; gap:9px; font-family:var(--font-mono); font-size:11px; padding:7px 10px; border:1px solid var(--line); border-radius:var(--r-sm); color:var(--muted)}
+.rung .rg{width:13px; text-align:center}
+.rung.hit{color:var(--v-green); border-color:color-mix(in srgb,var(--v-green) 45%,var(--line)); background:var(--v-green-bg)}
+.rung.hit.heal{color:var(--v-heals); border-color:color-mix(in srgb,var(--v-heals) 45%,var(--line)); background:var(--v-heals-bg)}
+.rung .rn{margin-left:auto; color:var(--faint)}
+.dkv{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:12px}
+.dkv .k{color:var(--muted); font-family:var(--font-mono); font-size:11px}
+.dkv .v{font-family:var(--font-mono); font-size:11.5px}
+.filters{display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap}
+.fchip{font-family:var(--font-mono); font-size:10.5px; border:1px solid var(--line-2); background:var(--panel); color:var(--muted); border-radius:20px; padding:3px 9px}
+.fchip[aria-selected="true"]{background:var(--sunk); color:var(--ink); border-color:var(--muted)}
+.fchip .c{color:var(--faint)} .fchip.danger[aria-selected="true"]{color:var(--v-red); border-color:color-mix(in srgb,var(--v-red) 45%,var(--line))}
+.nrow{border:1px solid var(--line); border-radius:var(--r-sm); padding:8px 10px; margin-bottom:7px; background:var(--panel)}
+.nrow.fail{border-color:color-mix(in srgb,var(--v-red) 40%,var(--line)); background:color-mix(in srgb,var(--v-red-bg) 55%,var(--panel))}
+.nrow .l1{display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:11.5px}
+.nrow .m{font-weight:700; flex:none}
+.nrow .m.GET{color:var(--v-green)} .nrow .m.POST{color:var(--v-run)} .nrow .m.DELETE{color:var(--v-red)} .nrow .m.PUT{color:var(--v-run)} .nrow .m.PATCH{color:var(--v-run)}
+.nrow .u{flex:1; min-width:0; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.nrow .st{flex:none; font-weight:700} .nrow .st.ok{color:var(--v-green)} .nrow .st.bad{color:var(--v-red)}
+.nrow .l2{display:flex; gap:10px; margin-top:5px; font-family:var(--font-mono); font-size:10px; color:var(--muted)}
+.nrow .exp{color:var(--v-green)}
+.dempty{color:var(--faint); font-family:var(--font-mono); font-size:11.5px; padding:10px 0}

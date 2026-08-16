@@ -1,0 +1,12 @@
+.env
+secrets/
+.playwright-mcp/
+.anneal/
+__pycache__/
+.pytest_cache/
+.venv/
+node_modules/
+/tmp/
+frontend/dist/
+frontend/openapi.json
+.DS_Store

@@ -1,0 +1,28 @@
+# D34: laptop Docker compose. M0 brings up postgres + the hermetic golden app.
+# verify.sh does: docker compose up -d postgres golden-app  (service names are load-bearing).
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: anneal
+      POSTGRES_PASSWORD: anneal
+      POSTGRES_DB: anneal
+    # Host port 55432 (NOT 5432) — a native homebrew postgres commonly holds 5432 and, binding
+    # 127.0.0.1/::1 specifically, wins over Docker's wildcard bind. ANNEAL_DB_URL default matches.
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anneal -d anneal"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  golden-app:
+    build: ./fixtures/app
+    ports:
+      - "8099:8099"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; urllib.request.urlopen('http://localhost:8099/login'); \" || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

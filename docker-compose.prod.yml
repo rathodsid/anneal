@@ -1,0 +1,59 @@
+# Production-shaped bring-up: Postgres + a one-shot migrate + the API (which serves the SPA
+# same-origin and hosts the in-process scheduler/browser workers). See ARCHITECTURE.md.
+#
+#   ANNEAL_VAULT_KEY=... ANTHROPIC_API_KEY=... docker compose -f docker-compose.prod.yml up --build
+#
+# `migrate` runs `alembic upgrade head` to completion BEFORE the API starts (addresses the
+# "migrations are not run on boot" gap deterministically — one-shot, not per-restart). For a real
+# deployment, point the API at a managed Postgres instead of this container.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: anneal
+      POSTGRES_PASSWORD: anneal
+      POSTGRES_DB: anneal
+    volumes:
+      - anneal-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anneal -d anneal"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build: .
+    image: anneal-api
+    command: ["uv", "run", "alembic", "upgrade", "head"]
+    environment:
+      ANNEAL_DB_URL: postgresql+psycopg://anneal:anneal@postgres:5432/anneal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: .
+    image: anneal-api
+    ports:
+      - "8080:8080"
+    environment:
+      ANNEAL_DB_URL: postgresql+psycopg://anneal:anneal@postgres:5432/anneal
+      # Supply these from the host env / a secret manager — never bake them into the image.
+      ANNEAL_VAULT_KEY: ${ANNEAL_VAULT_KEY:?set ANNEAL_VAULT_KEY (a stable, backed-up Fernet key)}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - anneal-artifacts:/var/lib/anneal/artifacts
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/health').status==200 else 1)\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  anneal-pgdata:
+  anneal-artifacts:

@@ -1,0 +1,48 @@
+/* Sessions + Territory (Target group) — .
+   Reuses .search/.toolbar (runs.css), .selctl/.parkbanner (suite.css), .stub/.chip/.pill (tokens). */
+
+.sess .content{max-width:1060px}
+.terr .content{max-width:1000px}
+
+/* Sessions */
+.sess-hd{display:flex; align-items:flex-start; gap:16px; margin-bottom:16px}
+.sess-hd h1{margin:0 0 5px; font-size:20px; letter-spacing:-.01em}
+.sess-hd .sub{color:var(--muted); font-size:12.5px; max-width:640px}
+.parkbanner .acts{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.sess .parkbanner{margin-bottom:20px}
+.sgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:12px}
+.scard{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:14px 15px}
+.scard.exp{border-color:color-mix(in srgb,var(--v-park) 45%,var(--line)); background:color-mix(in srgb,var(--v-park-bg) 45%,var(--panel))}
+.scard .top{display:flex; align-items:center; gap:9px; margin-bottom:12px}
+.scard .persona{font-family:var(--font-mono); font-size:13px; font-weight:600}
+.scard .top .state{margin-left:auto}
+.scard .kv{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:12px}
+.scard .kv .k{color:var(--muted); font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.04em}
+.scard .kv .v{font-family:var(--font-mono); font-size:11.5px; color:var(--ink-2)}
+.scard .foot{display:flex; gap:8px; align-items:center; margin-top:13px; padding-top:12px; border-top:1px solid var(--line); flex-wrap:wrap}
+.dotline{display:inline-flex; align-items:center; gap:6px}
+.dotline .d{width:7px;height:7px;border-radius:50%}
+.d-ok{background:var(--v-green); box-shadow:0 0 0 3px color-mix(in srgb,var(--v-green) 20%,transparent)}
+.d-no{background:var(--v-park)}
+
+/* Territory */
+.terr-hd{display:flex; align-items:flex-start; gap:16px; margin-bottom:14px}
+.terr-hd h1{margin:0 0 5px; font-size:20px; letter-spacing:-.01em}
+.terr-hd .sub{color:var(--muted); font-size:12.5px; max-width:640px}
+.readbanner{border:1px dashed var(--line-2); background:var(--panel-2); border-radius:var(--r); padding:11px 14px; margin-bottom:16px; display:flex; align-items:center; gap:10px; font-size:12px; color:var(--ink-2)}
+.readbanner .t{font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--v-park); flex:none}
+.count-note{font-family:var(--font-mono); font-size:11px; color:var(--muted)}
+.sec{margin-bottom:22px}
+.sec-h{display:flex; align-items:center; gap:9px; margin:0 0 10px}
+.sec-h .ico{width:22px;height:22px;border-radius:6px;background:var(--sunk);border:1px solid var(--line);display:grid;place-items:center;color:var(--muted);font-size:12px}
+.sec-h .name{font-size:13px; font-weight:600}
+.sec-h .b{font-family:var(--font-mono); font-size:10px; color:var(--muted); background:var(--sunk); border-radius:20px; padding:0 6px}
+.notes{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); overflow:hidden}
+.note{display:grid; grid-template-columns:210px 1fr; gap:16px; padding:12px 15px; border-bottom:1px solid var(--line)}
+.note:last-child{border-bottom:0}
+.note .term{font-family:var(--font-mono); font-size:12px; color:var(--ink); font-weight:600; word-break:break-word}
+.note .body{font-size:12.5px; color:var(--ink-2)}
+.note .prov{margin-top:6px; display:flex; gap:7px; flex-wrap:wrap; align-items:center}
+.provchip{font-family:var(--font-mono); font-size:9.5px; color:var(--muted); background:var(--sunk); border:1px solid var(--line); border-radius:20px; padding:1px 7px}
+.recon{font-family:var(--font-mono); font-size:11px; color:var(--ink-2); background:var(--sunk); border:1px solid var(--line); border-radius:var(--r-sm); padding:11px 13px; line-height:1.6; white-space:pre-wrap; word-break:break-word}
+.tgt-empty{padding:30px; text-align:center; color:var(--muted); font-size:12.5px; border:1px solid var(--line); border-radius:var(--r); background:var(--panel)}

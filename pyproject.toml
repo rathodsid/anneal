@@ -1,0 +1,66 @@
+[project]
+name = "anneal"
+version = "0.1.0"
+description = "Anneal — a target-agnostic web QA engine (agent authors, code replays)."
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "anneal-core",
+    "anneal-executor",
+    "anneal-db",
+    "anneal-artifacts",
+    "anneal-llm",
+    "anneal-scheduler",
+    "anneal-api",
+    "anneal-cli",
+    "anneal-authoring",
+    "anneal-heal",
+    "anneal-classify",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "playwright>=1.47",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.2",
+    "jsonschema>=4.20",
+]
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+anneal-core = { workspace = true }
+anneal-executor = { workspace = true }
+anneal-db = { workspace = true }
+anneal-artifacts = { workspace = true }
+anneal-llm = { workspace = true }
+anneal-scheduler = { workspace = true }
+anneal-api = { workspace = true }
+anneal-cli = { workspace = true }
+anneal-authoring = { workspace = true }
+anneal-heal = { workspace = true }
+anneal-classify = { workspace = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "m0_audit: target-agnostic grep audit + vendored-import checks (M0)",
+    "m0_golden: fixture compiles + replays green vs golden app + anneal export (M0)",
+    "m1: cold lane + console v0 (M1)",
+    "m2: hot lane (M2)",
+    "m3: red path (M3)",
+    "m4: scale (M4)",
+    "api_contract: typed API contract + OpenAPI gates (A0, docs/BACKEND-SPEC.md)",
+    "holdout: generalization on unseen flows from $ANNEAL_HOLDOUT_DIR (anti-overfit, GOAL rule 9)",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# root is a virtual aggregator; nothing to package from the root itself
+bypass-selection = true

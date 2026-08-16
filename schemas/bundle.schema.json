@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anneal.dev/schemas/bundle.schema.json",
+  "title": "Anneal Test Bundle",
+  "description": "Normative Bundle contract. Derived from fixtures/campaign-crud.bundle.jsonc (LLD §2). Validated on every write of test_version.bundle and module_version.steps. schema_version pins the action + postcondition vocabulary (D16).",
+  "type": "object",
+  "required": ["schema_version", "project_id", "test_id", "version", "state", "persona", "params", "lineage", "intent", "policy", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "project_id": { "type": "string" },
+    "test_id": { "type": "string" },
+    "version": { "type": "integer", "minimum": 1 },
+    "state": { "enum": ["draft", "calibrated", "frozen"] },
+    "persona": { "type": "string" },
+    "params": { "type": "object" },
+    "lineage": { "$ref": "#/$defs/lineage" },
+    "intent": { "$ref": "#/$defs/intent" },
+    "policy": { "$ref": "#/$defs/policy" },
+    "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } },
+    "calibration": { "type": "object" }
+  },
+  "$defs": {
+    "lineage": {
+      "type": "object",
+      "required": ["parent", "reason", "ruling", "incident", "triggered_by", "verified_against"],
+      "additionalProperties": false,
+      "properties": {
+        "parent": { "type": ["integer", "null"], "minimum": 1 },
+        "reason": { "enum": ["authored", "locator_heal", "behavior_change"] },
+        "ruling": { "enum": ["canonical", "provisional", null] },
+        "incident": { "type": ["string", "null"] },
+        "triggered_by": { "type": "string" },
+        "verified_against": { "type": "string" }
+      }
+    },
+    "intent": {
+      "type": "object",
+      "required": ["sources", "descriptor"],
+      "additionalProperties": false,
+      "properties": {
+        "descriptor": { "type": "string" },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["kind", "verbatim"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["nl", "prd", "pr", "ticket"] },
+              "verbatim": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": ["exclusive", "mutating"],
+      "additionalProperties": false,
+      "properties": {
+        "exclusive": { "type": "boolean" },
+        "mutating": { "type": "boolean" }
+      }
+    },
+    "step": {
+      "oneOf": [ { "$ref": "#/$defs/module_ref" }, { "$ref": "#/$defs/action_step" } ]
+    },
+    "module_ref": {
+      "type": "object",
+      "required": ["module"],
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "type": "object",
+          "required": ["ref", "version"],
+          "additionalProperties": false,
+          "properties": {
+            "ref": { "type": "string" },
+            "version": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "action_step": {
+      "type": "object",
+      "required": ["id", "intent", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^s[0-9]+$" },
+        "intent": { "type": "string" },
+        "action": { "enum": ["goto", "click", "fill", "select", "upload", "keypress", "hover", "assert"] },
+        "arg": { "type": "string" },
+        "target": { "$ref": "#/$defs/target" },
+        "assert": { "$ref": "#/$defs/assert_predicate" },
+        "postcondition": { "oneOf": [ { "$ref": "#/$defs/postcondition" }, { "type": "null" } ] },
+        "destructive": { "type": "boolean" },
+        "reload_on_miss": { "type": "boolean" },
+        "budget_ms": { "type": "integer", "minimum": 1 },
+        "capture": { "$ref": "#/$defs/capture" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "action": { "const": "assert" } } },
+          "then": { "required": ["assert"], "properties": { "postcondition": { "const": null } } },
+          "else": { "properties": { "assert": false } }
+        },
+        {
+          "if": { "properties": { "action": { "const": "goto" } } },
+          "then": { "required": ["arg"] },
+          "else": {
+            "if": { "properties": { "action": { "const": "assert" } } },
+            "then": { "properties": { "target": false } },
+            "else": { "required": ["target"] }
+          }
+        }
+      ]
+    },
+    "target": {
+      "type": "object",
+      "required": ["strategy", "selector"],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": { "enum": ["testid", "role", "text", "placeholder", "css"] },
+        "selector": { "type": "string" },
+        "within": { "$ref": "#/$defs/scope" },
+        "fallbacks": { "$ref": "#/$defs/fallbacks" }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "required": ["name", "from", "pattern"],
+      "additionalProperties": false,
+      "comment": "Extract a runtime value AFTER this step and bind it to a run-scoped var usable in a later step via {{capture.<name>}} (resolved at step time, not compile time). `from`:url reads page.url; `from`:text reads this step's target text. `pattern` is a regex — group(1) if present, else the whole match.",
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "from": { "enum": ["url", "text"] },
+        "pattern": { "type": "string" }
+      }
+    },
+    "fallbacks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "testid": { "type": "string" },
+        "role": { "type": "string" },
+        "text": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "css": { "type": "string" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "testid": { "type": "string" },
+        "role": { "type": "string" },
+        "row_label": { "type": "string" }
+      }
+    },
+    "assert_predicate": {
+      "type": "object",
+      "required": ["target"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["checked", "attribute", "text", "count"] },
+        "state": { "enum": ["visible", "hidden"] },
+        "equals": { "type": "string" },
+        "negative": { "type": "boolean" },
+        "target": { "$ref": "#/$defs/target" },
+        "name": { "type": "string" },
+        "contains": { "type": "boolean" },
+        "count": { "type": "integer", "minimum": 0 },
+        "checked": { "type": "boolean" }
+      },
+      "oneOf": [
+        { "required": ["state"], "not": { "required": ["kind"] } },
+        { "required": ["equals"], "not": { "required": ["kind"] } },
+        { "properties": { "kind": { "const": "checked" } }, "required": ["kind", "checked"] },
+        { "properties": { "kind": { "const": "attribute" } }, "required": ["kind", "name", "equals"] },
+        { "properties": { "kind": { "const": "text" } }, "required": ["kind", "equals"] },
+        { "properties": { "kind": { "const": "count" } }, "required": ["kind", "count"] }
+      ],
+      "comment": "Legacy (no kind): state -> element, equals -> value_is; the compiler infers. kind names the state-observing oracles (checked/attribute/text/count). LLD CR-4: the compiler additionally rejects negative:true when state is present (double negation); that cross-field rule lives in compile.py."
+    },
+    "postcondition": {
+      "type": "object",
+      "required": ["all", "budget_ms"],
+      "additionalProperties": false,
+      "properties": {
+        "budget_ms": { "type": "integer", "minimum": 1 },
+        "all": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/predicate" } }
+      }
+    },
+    "predicate": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "match"],
+          "additionalProperties": false,
+          "properties": { "kind": { "const": "url" }, "match": { "type": "string" } }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "method", "path", "status"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "network" },
+            "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+            "path": { "type": "string" },
+            "status": { "type": "string", "pattern": "^[1-5]xx$" },
+            "response": { "type": "object" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "state", "target"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "element" },
+            "state": { "enum": ["visible", "hidden"] },
+            "target": { "$ref": "#/$defs/target" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "equals", "target"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "value_is" },
+            "equals": { "type": "string" },
+            "target": { "$ref": "#/$defs/target" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "checked", "target"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "checked" },
+            "checked": { "type": "boolean" },
+            "target": { "$ref": "#/$defs/target" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "name", "equals", "target"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "attribute" },
+            "name": { "type": "string" },
+            "equals": { "type": "string" },
+            "target": { "$ref": "#/$defs/target" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "equals", "target"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "text" },
+            "equals": { "type": "string" },
+            "contains": { "type": "boolean" },
+            "target": { "$ref": "#/$defs/target" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "count", "target"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "count" },
+            "count": { "type": "integer", "minimum": 0 },
+            "target": { "$ref": "#/$defs/target" }
+          }
+        }
+      ]
+    }
+  }
+}

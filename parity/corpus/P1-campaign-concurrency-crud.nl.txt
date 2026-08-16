@@ -1,0 +1,12 @@
+# P1 — campaign create + concurrency + delete + verify gone   [expect: green]
+# Flagship. This is the flow behind fixtures/campaign-crud.bundle.jsonc.
+# Author through Anneal's hot lane; the login module (D19) is prepended by persona binding.
+
+Go to the campaign v2 page. Click on "Create Campaign". Name the campaign anything,
+then select the agent as campaign-test-agent, and then create the campaign. On the
+configure page, set the Max Concurrency to 1 and save the campaign there. Then go back
+to the Campaign v2 list page (/campaign-v2, the same section where you created it — not
+any other campaigns page). Search for the campaign by its name to filter the list to
+that one row, and verify the campaign is created. In that row, open its row actions
+(three-dots) menu, click Delete, and confirm the deletion. Search for the campaign by
+its name again and verify the campaign is gone from the list.

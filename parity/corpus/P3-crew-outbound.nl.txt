@@ -1,0 +1,6 @@
+# P3 — create crew + outbound type + verify   [expect: green]
+# Scope: create + outbound type + verify.
+
+Go to the crews page and open the create-crew form. Name the crew anything, select the
+crew type as Outbound, and verify that Outbound is the selected type. Create the crew
+and verify it appears.

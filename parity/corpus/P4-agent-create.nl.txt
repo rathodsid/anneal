@@ -1,0 +1,7 @@
+# P4 — create an agent + verify it appears in the list   [expect: green]
+# Anneal authors ONE subtype (inbound voice).
+# Shared capability: agent creation works and the agent appears in the list.
+
+Go to the agents page and create a new agent. Choose an Inbound Voice agent with a
+Single Prompt. Give it a name, create it, and verify the success confirmation. Return
+to the agents list and verify the new agent appears there.

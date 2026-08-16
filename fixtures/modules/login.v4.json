@@ -1,0 +1,31 @@
+{
+  "ref": "login",
+  "version": 4,
+  "steps": [
+    { "id": "s1", "intent": "open the sign-in page",
+      "action": "goto", "arg": "/login",
+      "postcondition": {
+        "all": [ { "kind": "element", "state": "visible",
+                   "target": { "strategy": "testid", "selector": "input-username" } } ],
+        "budget_ms": 10000 } },
+
+    { "id": "s2", "intent": "enter the username",
+      "action": "fill", "arg": "member@example.test",
+      "target": { "strategy": "testid", "selector": "input-username",
+                  "fallbacks": { "role": "textbox", "text": "Username" } } },
+
+    { "id": "s3", "intent": "enter the password",
+      "action": "fill", "arg": "correcthorse",
+      "target": { "strategy": "testid", "selector": "input-password",
+                  "fallbacks": { "role": "textbox", "text": "Password" } } },
+
+    { "id": "s4", "intent": "submit sign-in",
+      "action": "click",
+      "target": { "strategy": "testid", "selector": "btn-signin",
+                  "fallbacks": { "role": "button", "text": "Sign in" } },
+      "postcondition": {
+        "all": [ { "kind": "element", "state": "visible",
+                   "target": { "strategy": "testid", "selector": "nav-authenticated" } } ],
+        "budget_ms": 10000 } }
+  ]
+}

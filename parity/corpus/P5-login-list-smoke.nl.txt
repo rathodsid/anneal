@@ -1,0 +1,5 @@
+# P5 — log in + land on a section + list renders   [expect: green]
+# Foundational: exercises the login module (D19) that every other flow pins.
+
+Log in to the app. Verify the left navigation shows Agents, Workflows, and Campaigns.
+Open the agents page and verify the agents list renders.

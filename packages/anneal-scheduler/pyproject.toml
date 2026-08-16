@@ -1,0 +1,26 @@
+[project]
+name = "anneal-scheduler"
+version = "0.1.0"
+description = "Worker pool: SKIP-LOCKED claim, token mint, session-probe gate, cold runs, sweeper (§10)."
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "anneal-core",
+    "anneal-executor",
+    "anneal-db",
+    "anneal-artifacts",
+    "anneal-classify",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/anneal_scheduler"]
+
+[tool.uv.sources]
+anneal-core = { workspace = true }
+anneal-executor = { workspace = true }
+anneal-db = { workspace = true }
+anneal-artifacts = { workspace = true }
+anneal-classify = { workspace = true }

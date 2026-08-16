@@ -1,0 +1,16 @@
+/* Changelog — screen CSS. Reuses .tabs (runs.css) and the
+   .clog / kind-* chip classes (testviewer.css); adds the feed container + row inner structure. */
+
+.cl .content{max-width:940px}
+.cl-hd{margin-bottom:14px}
+.cl-hd h1{margin:0 0 5px; font-size:20px; letter-spacing:-.01em}
+.cl-hd .sub{color:var(--muted); font-size:12.5px; max-width:620px}
+
+.feed{border:1px solid var(--line); border-radius:var(--r); background:var(--panel); padding:2px 16px}
+.feed .clog{padding:13px 0}
+.clog .body{flex:1; min-width:0}
+.clog .cs .tk{font-family:var(--font-mono); font-weight:600; color:var(--ink)}
+.clog .rn{border-left:2px solid var(--v-run); padding:5px 0 5px 11px; margin-top:8px; color:var(--ink-2); font-size:12px; font-style:italic}
+.clog .cw{font-family:var(--font-mono); font-size:10.5px; color:var(--muted); margin-top:7px; display:flex; gap:12px; flex-wrap:wrap}
+.cl-empty{padding:34px; text-align:center; color:var(--muted); font-size:12.5px; border:1px solid var(--line); border-radius:var(--r); background:var(--panel)}
+.cl-pager{display:flex; align-items:center; gap:12px; margin-top:12px; font-family:var(--font-mono); font-size:11.5px; color:var(--muted)}

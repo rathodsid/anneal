@@ -1,0 +1,16 @@
+[project]
+name = "anneal-cli"
+version = "0.1.0"
+description = "Thin httpx client of the API (D32) — everything except rulings (web-only)."
+requires-python = ">=3.12,<3.14"
+dependencies = ["httpx>=0.28"]
+
+[project.scripts]
+anneal = "anneal_cli.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/anneal_cli"]
