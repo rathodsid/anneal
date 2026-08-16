@@ -20,7 +20,7 @@ jobs:
             if [ "$got" != "$want" ]; then
               echo "::error::FROZEN FILE CHANGED: $path (expected $want, got $got)"; fail=1
             fi
-          done < <(grep -E '^\s+_pin' verify.sh | awk '{print $2, $3}')
+          done < <(grep -oE '_pin [0-9a-f]{64} [^ ]+' verify.sh | awk '{print $2, $3}')
           exit $fail
 
       - name: Corpus integrity (P1-P5 present, N1 still expects RED)
