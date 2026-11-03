@@ -31,4 +31,11 @@ async def guard(locator, token: str) -> None:
         raise PolicyStop("destructive guard: no run token bound to this run")
     scope_text = await enclosing_entity_text(locator)
     if token not in scope_text:
+        # A page-level confirm (a dedicated delete route, a dialog that says only "this item") carries
+        # the entity's identity in the document title — the page's own visible identity.
+        try:
+            scope_text += "\n" + (await locator.page.title() or "")
+        except Exception:
+            pass
+    if token not in scope_text:
         raise PolicyStop("destructive action off-token: run token not in enclosing entity identity")

@@ -25,6 +25,16 @@ _JS = r"""() => {
     };
   }
 
+  // nearest enclosing LANDMARK (ARIA region semantics — a web standard, never an app class/noun): the
+  // same entity rendered in two regions (a nav entry AND a content card) is unique WITHIN its region.
+  const LANDMARK_SEL = 'nav,main,aside,dialog,[role=navigation],[role=main],[role=complementary],[role=dialog],[role=region],[role=banner],[role=contentinfo]';
+  const LANDMARK_ROLE = {nav: 'navigation', main: 'main', aside: 'complementary', dialog: 'dialog'};
+  function landmarkFor(el) {
+    const lm = el.closest(LANDMARK_SEL);
+    if (!lm) return null;
+    return lm.getAttribute('role') || LANDMARK_ROLE[lm.tagName.toLowerCase()] || null;
+  }
+
   const ROW_SEL = 'tr,[role=row],li';
   function rowFor(el) {
     let r = el.closest(ROW_SEL);
@@ -101,6 +111,7 @@ _JS = r"""() => {
       bbox: {x: r.x, y: r.y, w: r.width, h: r.height},
       anchor: anchorFor(el),
       row: rowFor(el),
+      landmark: landmarkFor(el),
     };
   }
 

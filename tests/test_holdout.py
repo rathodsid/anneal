@@ -31,6 +31,7 @@ import pytest
 from sqlalchemy import text
 
 from anneal_artifacts.store import LocalDiskStore
+from anneal_authoring.calibrate import CalibrationError
 from anneal_authoring.service import author_and_freeze
 from anneal_db import repositories as repo
 from anneal_db.engine import get_engine
@@ -70,13 +71,15 @@ def _load_flows() -> list[dict]:
 def _target_profile(flow: dict) -> tuple[str, dict]:
     name = flow.get("target", "golden")
     prof = (flow.get("_targets") or {}).get(name, {})
-    if name != "golden":
-        # cart/live profiles are registered later (M4 / parity-live) — skip, never a silent pass
-        pytest.skip(f"holdout target {name!r} is not wired until M4/parity-live")
+    if name != "golden" and not prof.get("base_url"):
+        pytest.fail(f"holdout target {name!r} needs a base_url in holdout.json")
     return name, {"base_url": prof.get("base_url") or GOLDEN_URL,
                   # default to the AUTHENTICATED entry, not '/' (which redirects to sign-in → parked_auth)
-                  "probe_path": prof.get("probe_path") or "/campaigns",
-                  "persona": prof.get("persona", "member")}
+                  "probe_path": prof.get("probe_path") or ("/campaigns" if name == "golden" else "/"),
+                  "persona": prof.get("persona", "member"),
+                  # a real target logs in via its auth block {"kind": form|clerk|auto, "signin_path",
+                  # "creds_ref"}; creds resolve through the vault chain (ANNEAL_<CREDS_REF>_USERNAME/_PASSWORD)
+                  "auth": prof.get("auth")}
 
 
 def _seed_session(eng, *, project_id, persona, target_id, storage_path):
@@ -131,14 +134,26 @@ def test_holdout_flow_generalizes(flow, _clean_db, tmp_path):
     if name == "golden":                                        # the hermetic mock resets to a clean
         _reset_golden(prof["base_url"])                         # state so each flow runs in isolation
 
+    profile = {"probe_path": prof["probe_path"]}
+    if prof["auth"]:
+        profile["auth"] = prof["auth"]
     tid = repo.seed_project_target(eng, project_id="holdout", project_name="Holdout",
                                    target_key=f"holdout-{key}", base_url=prof["base_url"],
-                                   timezone_="UTC", profile={"probe_path": prof["probe_path"]})
-    _seed_session(eng, project_id="holdout", persona=prof["persona"], target_id=tid,
-                  storage_path=str(tmp_path / "session.json"))
+                                   timezone_="UTC", profile=profile)
+    if not prof["auth"]:                                        # golden has no login wall: an empty state
+        _seed_session(eng, project_id="holdout", persona=prof["persona"], target_id=tid,   # is "valid"
+                      storage_path=str(tmp_path / "session.json"))
+    # else: author_and_freeze's _ensure_session logs in through the auth block and seeds the session
+    # the scheduler probe validates — the same path a real onboarded target takes.
 
-    res = _run(author_and_freeze(eng, project_id="holdout", test_key=key, nl=nl, target_id=tid,
-                                 persona=prof["persona"], answers=flow.get("answers")))
+    try:
+        res = _run(author_and_freeze(eng, project_id="holdout", test_key=key, nl=nl, target_id=tid,
+                                     persona=prof["persona"], answers=flow.get("answers")))
+    except CalibrationError as e:
+        # D7: an oracle that is never true on a clean replay is REFUSED at freeze, not frozen as a red
+        # test — for a red-by-design negative that refusal is the honest verdict (it never went green).
+        assert expect == "red", f"{flow['nl']}: calibration refused the freeze: {e}"
+        return
     if res.get("status") == "needs_answers":
         assert expect in ("needs_answers", "blocked"), \
             f"{flow['nl']}: hot lane could not author it (interview blocked): {res.get('questions')}"

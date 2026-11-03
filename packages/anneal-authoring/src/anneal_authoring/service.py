@@ -146,6 +146,30 @@ async def _ensure_session(engine, *, target, target_id, project_id, persona):
     return path
 
 
+async def _revalidate_session(engine, *, target, target_id, project_id, persona, storage_state):
+    """Sessions are a component (HLD §7): a seeded session can expire BETWEEN authoring attempts (a
+    short-TTL token, a long retry loop). Probe it; on expiry re-login once through the auth block, as
+    the scheduler does before a suite. No auth block / no session → unchanged."""
+    from playwright.async_api import async_playwright
+
+    from anneal_executor.session import probe_session
+
+    auth = (target.get("profile") or {}).get("auth") or {}
+    if storage_state is None or auth.get("kind", "none") == "none":
+        return storage_state
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        try:
+            ctx = await browser.new_context(base_url=target["base_url"], storage_state=storage_state)
+            state = await probe_session(await ctx.new_page(), target["base_url"], _start_path(target))
+        finally:
+            await browser.close()
+    if state == "valid":
+        return storage_state
+    return await _ensure_session(engine, target=target, target_id=target_id, project_id=project_id,
+                                 persona=persona) or storage_state
+
+
 async def author_and_freeze(engine, *, project_id, test_key, nl, target_id, persona="member",
                             answers=None, model=None, max_attempts=4, artifacts=None) -> dict:
     target = repo.get_target(engine, target_id=target_id)
@@ -180,6 +204,9 @@ async def author_and_freeze(engine, *, project_id, test_key, nl, target_id, pers
     last_exc = None
     skipped_steps: list[dict] = []
     for _ in range(max_attempts):
+        storage_state = await _revalidate_session(engine, target=target, target_id=target_id,
+                                                  project_id=project_id, persona=persona,
+                                                  storage_state=storage_state)
         try:
             bundle, calib, skipped_steps = await _author_once(
                 engine, target=target, start_path=start_path, full_nl=full_nl, project_id=project_id,

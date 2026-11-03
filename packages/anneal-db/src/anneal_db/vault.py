@@ -21,6 +21,9 @@ from cryptography.fernet import Fernet
 from sqlalchemy import text
 
 _VAULT_KEY_ENV = "ANNEAL_VAULT_KEY"
+# A credential row that only keys a session (creds came from the env layers) holds this instead of
+# ciphertext; `resolve` must skip it or every re-login after the first fails on a fake decrypt.
+SESSION_ANCHOR = b"session-anchor-no-secret"
 
 
 class VaultKeyMissing(RuntimeError):
@@ -93,7 +96,7 @@ def resolve(engine, *, creds_ref: str, project_id: str, persona: str) -> Credent
     # layer 1 — DB (decrypted). A present row WINS over env (T1). No row → fall through to env (no key
     # needed for a keyless demo). A present row with no key → VaultKeyMissing (refuse to read).
     enc = _db_secret_enc(engine, project_id, persona)
-    if enc is not None:
+    if enc is not None and enc != SESSION_ANCHOR:
         creds = decrypt_credentials(enc)
         if creds.username and creds.password:
             return creds

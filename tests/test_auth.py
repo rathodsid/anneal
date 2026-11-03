@@ -19,6 +19,7 @@ import pytest
 from cryptography.fernet import Fernet
 from sqlalchemy import text
 
+from anneal_db import repositories as repo
 from anneal_db import vault
 from anneal_db.engine import get_engine
 from anneal_db.vault import Credentials
@@ -98,6 +99,17 @@ def test_resolve_per_ref_env(engine, vault_key, monkeypatch, _clean_cred_env):
     monkeypatch.setenv("ANNEAL_UI_PASSWORD", "generic-pass")
     creds = vault.resolve(engine, creds_ref="acme-staging", project_id=pid, persona="member")
     assert creds == vault.Credentials("acme-user", "acme-pass")
+
+
+def test_resolve_falls_through_session_anchor(engine, monkeypatch, _clean_cred_env):
+    """A session-anchor credential row (written after an env-layer login, holds no secret) must not
+    shadow the env layers — otherwise every re-login after the first one fails on a fake decrypt."""
+    pid = _seed_project(engine)
+    repo.ensure_credential_anchor(engine, project_id=pid, persona="member")
+    monkeypatch.setenv("ANNEAL_PROJ_A_USERNAME", "env-ref-user")
+    monkeypatch.setenv("ANNEAL_PROJ_A_PASSWORD", "env-ref-pass")
+    creds = vault.resolve(engine, creds_ref="proj-a", project_id=pid, persona="member")
+    assert creds == vault.Credentials("env-ref-user", "env-ref-pass")
 
 
 def test_resolve_generic_env_fallback(engine, vault_key, monkeypatch, _clean_cred_env):

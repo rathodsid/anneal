@@ -11,6 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from .engine import mint_token
+from .vault import SESSION_ANCHOR
 
 
 def _now():
@@ -82,7 +83,7 @@ def ensure_credential_anchor(engine, *, project_id, persona) -> str:
             cid = c.execute(text("insert into credential (project_id, persona, secret_enc) "
                                  "values (:p,:pa,:s) returning id"),
                             {"p": project_id, "pa": persona,
-                             "s": b"session-anchor-no-secret"}).scalar()
+                             "s": SESSION_ANCHOR}).scalar()
         return str(cid)
 
 

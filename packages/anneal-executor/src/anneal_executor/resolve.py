@@ -43,6 +43,28 @@ def _locator_for(root, rung):
     raise ValueError(f"unknown rung kind {rung.kind!r}")
 
 
+def _locators_for(root, rung):
+    """Priority-ordered candidates for ONE rung. A role rung's name is the FULL accessible name the
+    author captured, so an exact match comes first; the substring match stays as its fallback (a short
+    name like 'Add' also substring-matches 'Add to Favorites' and would read as ambiguous)."""
+    if rung.kind == "role" and rung.name:
+        return [root.get_by_role(rung.value, name=rung.name, exact=True), _locator_for(root, rung)]
+    return [_locator_for(root, rung)]
+
+
+async def _count_first(root, rung):
+    """(locator, count) of the first candidate of the rung that matches anything (exact before substring)."""
+    loc, n = None, 0
+    for loc in _locators_for(root, rung):
+        try:
+            n = await loc.count()
+        except Exception:
+            n = 0
+        if n:
+            break
+    return loc, n
+
+
 async def resolve(page, rungs, budget_ms, scope=None):
     """PRESENCE resolver (actions, visible/value oracles): the highest-priority rung with EXACTLY
     one match, swept across the whole ladder every ~150ms until budget. NOT Locator.or() (no
@@ -51,12 +73,9 @@ async def resolve(page, rungs, budget_ms, scope=None):
     root = _scope_root(page, scope)
     while time.monotonic() < deadline:
         for rung in rungs:                       # already priority-sorted (§2.3)
-            loc = _locator_for(root, rung)
-            try:
-                if await loc.count() == 1:        # count()==1 gate — never gamble on .first() (ANTI D-8)
-                    return loc, rung.kind
-            except Exception:
-                continue
+            loc, n = await _count_first(root, rung)
+            if n == 1:                            # count()==1 gate — never gamble on .first() (ANTI D-8)
+                return loc, rung.kind
         await asyncio.sleep(_SWEEP_S)
     raise LocatorUnresolved(str([r.kind for r in rungs]))
 
@@ -69,11 +88,7 @@ async def wait_hidden(page, rungs, budget_ms, scope=None):
     root = _scope_root(page, scope)
     while time.monotonic() < deadline:
         for rung in rungs:                       # priority order
-            loc = _locator_for(root, rung)
-            try:
-                n = await loc.count()
-            except Exception:
-                n = 0
+            loc, n = await _count_first(root, rung)
             if n == 0:
                 continue                          # this rung sees nothing…
             if n == 1:

@@ -250,6 +250,98 @@ def test_calibration_rejects_unfalsifiable_bundle(frozen):
 
 
 @pytest.mark.m2
+def test_row_scope_carries_container_role():
+    """A row scope resolves by the OBSERVED container's role: a control inside an <li> (sidebar, menu,
+    card list) is scoped within role=listitem, not the fixed 'row' a table row gets — get_by_role('row')
+    matches nothing on a list and the step reds LOCATOR_DRIFT at replay. Deterministic, no LLM."""
+    from anneal_authoring.author import _target_from_descriptor
+    li = _target_from_descriptor({"tag": "a", "href": "/x", "text": "Projects",
+                                  "row": {"container_tag": "li", "label": "Projects"}})
+    assert li["within"] == {"row_label": "Projects", "role": "listitem"}
+    tr = _target_from_descriptor({"tag": "button", "name": "Row menu",
+                                  "row": {"container_tag": "tr", "label": "Alpha"}})
+    assert tr["within"] == {"row_label": "Alpha"}            # a table row keeps the default 'row'
+
+
+@pytest.mark.m2
+def test_landmark_scope_disambiguates_duplicate_rendering():
+    """The same entity rendered in two regions (a nav entry AND a content card) is ambiguous page-wide
+    but unique within its enclosing landmark: perception reports the landmark, the author re-scopes the
+    ambiguous target to it, and the cold resolver then finds exactly one. Deterministic — no LLM."""
+    from anneal_authoring.author import _landmark_scoped, _scope_ns, _target_from_descriptor, _target_ns
+    from anneal_authoring.perception import snapshot_interactive
+    from anneal_core.rungs import derive_rungs
+    from anneal_executor.resolve import resolve
+    from playwright.async_api import async_playwright
+
+    async def _run():
+        async with async_playwright() as p:
+            br = await p.chromium.launch()
+            try:
+                page = await (await br.new_context()).new_page()
+                await page.set_content(
+                    '<nav><ul><li><a href="/p/1">Inbox</a></li></ul></nav>'
+                    '<main><ul><li><a href="/p/1">Inbox</a> <span>3 tasks</span></li></ul></main>')
+                els = await snapshot_interactive(page)
+                nav = next(e for e in els if e.get("text") == "Inbox" and e["landmark"] == "navigation")
+                assert any(e.get("text") == "Inbox" and e["landmark"] == "main" for e in els)
+                tgt = _target_from_descriptor(nav)                 # within listitem 'Inbox' → 2 page-wide
+                assert await page.get_by_role("listitem").filter(has_text="Inbox").count() == 2
+                alt = _landmark_scoped(tgt, nav)
+                assert alt["within"] == {"role": "navigation", "row_label": "Inbox"}
+                loc, _ = await resolve(page, derive_rungs(_target_ns(alt)), 2000, _scope_ns(alt))
+                assert await loc.count() == 1 and await loc.evaluate("e => e.closest('nav') !== null")
+            finally:
+                await br.close()
+    import asyncio
+    asyncio.run(_run())
+
+
+@pytest.mark.m2
+def test_exact_descriptor_uses_implicit_role():
+    """The assert regrounder keys on the ACCESSIBLE role (a native <a href>/<button> has one without a
+    role attribute) — otherwise a plain link is never regrounded and the oracle stays a bare-text rung."""
+    from anneal_authoring.author import _exact_descriptor
+    raw = [{"tag": "a", "href": "/p/1", "text": "Item abc", "row": {"container_tag": "li", "label": "Item abc"}}]
+    assert _exact_descriptor(raw, "Item abc") is raw[0]
+    assert _exact_descriptor([{"tag": "div", "text": "Item abc"}], "Item abc") is None
+
+
+@pytest.mark.m2
+def test_resolver_prefers_exact_accessible_name_and_guard_reads_page_title():
+    """(1) A role rung's captured name is the FULL accessible name: 'Add' must resolve the 'Add' button,
+    not read as ambiguous with 'Add to Favorites' (substring stays the fallback). (2) The destructive
+    guard accepts the entity identity from the page title when a page-level confirm names only 'this
+    item'. Deterministic — no LLM."""
+    from anneal_core.errors import PolicyStop
+    from anneal_core.rungs import Rung
+    from anneal_executor.guard import guard
+    from anneal_executor.resolve import resolve
+    from playwright.async_api import async_playwright
+
+    async def _run():
+        async with async_playwright() as p:
+            br = await p.chromium.launch()
+            try:
+                page = await (await br.new_context()).new_page()
+                await page.set_content('<button aria-label="Add">ADD</button><button>Add to Favorites</button>'
+                                       '<button>Create campaign</button>')
+                loc, kind = await resolve(page, [Rung("role", "button", name="Add", priority=2)], 2000)
+                assert kind == "role" and await loc.get_attribute("aria-label") == "Add"
+                loc, _ = await resolve(page, [Rung("role", "button", name="Create", priority=2)], 2000)
+                assert await loc.inner_text() == "Create campaign"       # substring fallback still works
+                await page.set_content('<title>Delete "Item tok123xyz"</title>'
+                                       '<dialog open><p>Delete this item?</p><button>Do it</button></dialog>')
+                await guard(page.get_by_role("button", name="Do it"), "tok123xyz")   # title carries it
+                with pytest.raises(PolicyStop):
+                    await guard(page.get_by_role("button", name="Do it"), "othertoken")
+            finally:
+                await br.close()
+    import asyncio
+    asyncio.run(_run())
+
+
+@pytest.mark.m2
 def test_ground_scope_drops_phantom_container():
     """Layer 1 (PL-7/PL-6): an assert's `scope_role` is committed ONLY when the fully-scoped locator
     resolves on the page — the same locator the cold-replay resolver builds. A container role the app
@@ -272,6 +364,11 @@ def test_ground_scope_drops_phantom_container():
                 assert await _ground_scope(page, "list", "Alpha") == {"role": "list"}
                 # target absent entirely (a never-created negative) → scope dropped, outcome unchanged
                 await page.set_content('<div>nothing here</div>')
+                assert await _ground_scope(page, "list", "Alpha") is None
+                # the container role used TWICE (sidebar list + content list, both holding the item) does
+                # not isolate the target → dropped, so the landmark scope can take over
+                await page.set_content('<nav><ul role="list"><li>Alpha</li></ul></nav>'
+                                       '<main><ul role="list"><li>Alpha</li></ul></main>')
                 assert await _ground_scope(page, "list", "Alpha") is None
                 # no scope_role picked → nothing to ground
                 assert await _ground_scope(page, None, "Alpha") is None

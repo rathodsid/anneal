@@ -24,6 +24,7 @@ from anneal_core.rungs import derive_rungs
 from anneal_executor import actions
 from anneal_executor.guard import guard
 from anneal_executor.resolve import resolve
+from anneal_executor.session import is_login_page
 from anneal_executor.settle import await_settled, await_transition
 from anneal_llm.client import complete_json
 
@@ -38,6 +39,9 @@ _ID_SEG = re.compile(r"^(\d+|[a-f0-9]{8}-[a-f0-9-]{4,}|[a-z]+\d{3,}|[a-z0-9]{16,
 # gate the network postcondition, the destructive flag, and the post-commit transition wait. Verb-keyed,
 # target-agnostic.
 _COMMIT_VERBS = ("click", "keypress", "select", "upload")
+
+
+_LOGIN_INTENT = re.compile(r"\b(log|sign)[ -]?(in|on)\b", re.I)   # a scaffold step that only signs in
 
 
 class AuthoringIncomplete(Exception):
@@ -210,6 +214,10 @@ def _target_from_descriptor(d: dict) -> dict:
         raw = d["row"]["label"]
         label = re.split(r"[\t\n]", raw)[0].strip() or raw.strip()
         target["within"] = {"row_label": label}
+        # The scope resolves by the OBSERVED container's role, never a fixed 'row': a list item (sidebar,
+        # menu, card list) is role=listitem, and `get_by_role('row')` would match nothing at replay.
+        if d["row"].get("container_tag") == "li":
+            target["within"]["role"] = "listitem"
     fb = {k: v for k, v in fb.items() if v and not (k == primary["strategy"])}
     if fb:
         target["fallbacks"] = fb
@@ -234,12 +242,28 @@ def _reground_assert_target(raw: list[dict], text_val: str) -> dict:
     Match on EXACT identity only (name or full text equals text_val), never loose containment — a loose
     match risks pointing the oracle at the wrong element (and check #3 would then red a legit freeze).
     No confident, more-specific match → keep the bare text (never worse than before)."""
+    pick = _exact_descriptor(raw, text_val)
+    return _target_from_descriptor(pick) if pick else {"strategy": "text", "selector": text_val}
+
+
+def _exact_descriptor(raw: list[dict], text_val: str) -> dict | None:
+    """The observed control whose OWN identity (name or full text) IS text_val, stable-testid first."""
     exact = [d for d in raw
              if (d.get("name") == text_val or (d.get("text") or "").strip() == text_val)
              and not _is_editable_control(d)]     # a control whose VALUE == X is not X "appearing"
-    pick = (next((d for d in exact if d.get("testid") and not _volatile_testid(d["testid"])), None)
-            or next((d for d in exact if d.get("role") and (d.get("name") or d.get("text"))), None))
-    return _target_from_descriptor(pick) if pick else {"strategy": "text", "selector": text_val}
+    return (next((d for d in exact if d.get("testid") and not _volatile_testid(d["testid"])), None)
+            or next((d for d in exact if _implicit_role(d) and (d.get("name") or d.get("text"))), None))
+
+
+def _landmark_scoped(target: dict, desc: dict) -> dict | None:
+    """The same entity rendered in two regions (a nav entry AND a content card) is ambiguous page-wide
+    but unique WITHIN its region: re-scope the target to the picked control's enclosing landmark
+    (perception's `landmark`: navigation/main/dialog…). None when there is no landmark or no label."""
+    lm = desc.get("landmark")
+    label = ((target.get("within") or {}).get("row_label") or desc.get("name") or desc.get("text") or "").strip()
+    if not lm or not label:
+        return None
+    return {**target, "within": {"role": lm, "row_label": label}}
 
 
 async def _ground_scope(page, scope_role: str | None, text_val: str) -> dict | None:
@@ -263,7 +287,10 @@ async def _ground_scope(page, scope_role: str | None, text_val: str) -> dict | N
         scoped_n = await page.get_by_role(scope_role).get_by_text(text_val).count()
     except Exception:                                    # a bogus role string / detached page → not grounded
         scoped_n = 0
-    return {"role": scope_role} if scoped_n else None
+    # the resolver's own rule (count()==1): a container role the page uses TWICE (a sidebar list and
+    # a content list both holding the item) does not isolate the target — drop it so the landmark
+    # disambiguation can scope it instead; 0 (absent / phantom) drops it as before.
+    return {"role": scope_role} if scoped_n == 1 else None
 
 
 def _target_ns(target: dict):
@@ -727,6 +754,22 @@ async def author_bundle(page, *, nl, project_id, test_id, persona, target_key, s
                               "target": _reground_assert_target(raw, text_val)}
             if scope:
                 assert_obj["target"]["within"] = scope
+            # Landmark disambiguation (the act lane's rule, applied to the oracle): a present-assert whose
+            # locator does not resolve uniquely NOW is re-scoped to its control's enclosing landmark when
+            # that makes it unique. An absent target (a never-created negative) stays as-is — outcome intact.
+            pd = _exact_descriptor(raw, text_val) if assert_obj.get("state") == "visible" and not scope else None
+            if pd:
+                try:
+                    await resolve(page, derive_rungs(_target_ns(assert_obj["target"])), 1500,
+                                  _scope_ns(assert_obj["target"]))
+                except (LocatorUnresolved, LocatorAmbiguous):
+                    alt = _landmark_scoped(assert_obj["target"], pd)
+                    try:
+                        if alt:
+                            await resolve(page, derive_rungs(_target_ns(alt)), 1500, _scope_ns(alt))
+                            assert_obj["target"] = alt
+                    except (LocatorUnresolved, LocatorAmbiguous):
+                        pass
             # P4 (Prong A′): never freeze an oracle keyed on a transient toast/announcement — it drifts
             # once it auto-dismisses and the freeze gate cannot see it (green on the positive replay).
             if await _assert_target_is_transient(page, assert_obj["target"]):
@@ -836,6 +879,12 @@ async def author_bundle(page, *, nl, project_id, test_id, persona, target_key, s
             # RC4: NEVER a silent skip. An ungroundable pick is recorded ONCE after the loop (auditable,
             # surfaced on freeze) and FAILS LOUD when it is the flow's declared IRREVERSIBLE action.
             if pick is None or not _groundable(pick, inv):
+                # A sign-in step on an already-authenticated page is satisfied by the seeded session
+                # (persona binding, D19): no control to act on is not a hollow-green drop.
+                if _LOGIN_INTENT.search(step["text"]) and not await is_login_page(page):
+                    skip_kind = "over_plan"
+                    skip_reason = "already authenticated by the seeded session — no sign-in control to act on"
+                    break
                 skip_reason = (f"ACT_PICK could not ground it after active seeking "
                                f"(verb={verb!r}, {len(inv)} in inventory)")
                 break
@@ -897,7 +946,11 @@ async def author_bundle(page, *, nl, project_id, test_id, persona, target_key, s
             # just created and searched for. Gated to icon-only controls (no own visible text), so a
             # text-labelled control is never mis-scoped; item-keyed, so a flow not acting on it is safe.
             if (desc.get("row") or {}).get("label") and item_name and not desc.get("text"):
-                target["within"] = {"row_label": item_name}
+                keyed = {**(target.get("within") or {}), "row_label": item_name}
+                # Only when a row bearing the item EXISTS — an icon-only control in an unrelated row
+                # (a sidebar entry, a nav item) keeps its observed row, never the flow's item.
+                if await _row_scope_count(page, keyed) == 1:
+                    target["within"] = keyed
             if _DEBUG:
                 print(f"[author] act {step['text']!r} turn={_turn} verb={verb} ref={ref} desc="
                       f"testid={desc.get('testid')} role={desc.get('role')} text={desc.get('text')!r} "
@@ -919,8 +972,16 @@ async def author_bundle(page, *, nl, project_id, test_id, persona, target_key, s
                 # ambiguous among stale rows — gets the SAME RC4 discipline as an ungrounded pick.
                 locator, _ = await resolve(page, derive_rungs(_target_ns(target)), 10000, _scope_ns(target))
             except (LocatorUnresolved, LocatorAmbiguous) as e:
-                skip_reason = f"the picked control did not resolve to a unique live element ({e})"
-                break
+                # one retry scoped to the control's enclosing landmark (see _landmark_scoped)
+                alt = _landmark_scoped(target, desc)
+                try:
+                    if alt is None or await _row_scope_count(page, alt["within"]) != 1:
+                        raise e
+                    locator, _ = await resolve(page, derive_rungs(_target_ns(alt)), 4000, _scope_ns(alt))
+                    target = alt
+                except (LocatorUnresolved, LocatorAmbiguous) as e2:
+                    skip_reason = f"the picked control did not resolve to a unique live element ({e2})"
+                    break
             if scaffold_flagged:
                 # author-lane D15 (§6.4, "binds all lanes"): validate the scaffold's destructive guess is
                 # on-token BEFORE acting. A token-less precursor the scaffold mis-flagged (a menu-open)
