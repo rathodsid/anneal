@@ -89,8 +89,6 @@ def rule_members(engine, *, project_id, incident_id, members, ruling_note, ruled
 
     decided = sorted(set(members.values()))
     derived = decided[0] if len(decided) == 1 else "mixed"
-    repo.set_incident(engine, incident_id=incident_id, state="ruled", ruling=derived,
-                      ruling_note=ruling_note, ruled_by=ruled_by, ruled=True)
 
     affected, applied, bugged = [], {}, []
     for tid, ruling in members.items():
@@ -114,6 +112,10 @@ def rule_members(engine, *, project_id, incident_id, members, ruling_note, ruled
             if parent is not None:
                 repo.set_head_version(engine, test_id=tid, version=parent)
 
+    # 'ruled' is written only AFTER every member moved: a crash mid-loop leaves the incident re-rulable
+    # (the guard above refuses ruled/closed), so a re-POST completes idempotently instead of sticking.
+    repo.set_incident(engine, incident_id=incident_id, state="ruled", ruling=derived,
+                      ruling_note=ruling_note, ruled_by=ruled_by, ruled=True)
     summary = (f"{inc['ck_step_sig']} on {inc['ck_surface']}: ruled {derived} "
                f"({len(affected)} test(s): {', '.join(affected)})")
     repo.changelog_add(engine, project_id=project_id,

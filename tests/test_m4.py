@@ -126,22 +126,28 @@ def _run(eng, target_id, suite_id, max_parallel=4):
 @pytest.mark.m4
 def test_exclusive_advisory_lock_serializes(env):
     """Two exclusive tests never overlap on a target (3.1c) — the lock is released only after a run
-    finishes, so the next exclusive run can only start afterwards. Both still go green (no deadlock)."""
+    finishes, so the next exclusive run can only start afterwards. An ORDINARY test (shared-mode
+    lock) never overlaps an exclusive one either. All still go green (no deadlock)."""
     eng, tid = env["engine"], env["target_id"]
     a = _seed(eng, _readonly("excl-a", exclusive=True))
     b = _seed(eng, _readonly("excl-b", exclusive=True))
-    suite = repo.create_suite(eng, project_id="golden", name="excl", member_test_ids=[a, b])
-    sr, report = _run(eng, tid, suite, max_parallel=2)
+    o = _seed(eng, _readonly("ordinary-o"))
+    suite = repo.create_suite(eng, project_id="golden", name="excl", member_test_ids=[a, b, o])
+    sr, report = _run(eng, tid, suite, max_parallel=3)
     assert report.verdict in ("green", "green_with_heals"), report
 
     with eng.connect() as c:
         rows = c.execute(text("""select rr.test_id, rr.started_at, rr.finished_at from run_result rr
                                  join run_task rt on rt.id = rr.run_task_id where rt.suite_run_id=:s
                                  order by rr.started_at"""), {"s": sr}).mappings().all()
-    assert len(rows) == 2, rows
-    first, second = rows
-    assert first["finished_at"] <= second["started_at"], \
-        f"exclusive runs overlapped: {first['finished_at']} > {second['started_at']}"
+    assert len(rows) == 3, rows
+    win = {str(r["test_id"]): (r["started_at"], r["finished_at"]) for r in rows}
+
+    def overlaps(x, y):
+        return x[0] < y[1] and y[0] < x[1]
+    assert not overlaps(win[str(a)], win[str(b)]), f"exclusive runs overlapped: {win}"
+    for ex in (a, b):
+        assert not overlaps(win[str(o)], win[str(ex)]), f"ordinary run overlapped an exclusive one: {win}"
 
 
 @pytest.mark.m4

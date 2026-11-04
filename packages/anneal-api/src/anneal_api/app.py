@@ -12,9 +12,10 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+from sqlalchemy.exc import DataError
 
 from anneal_artifacts.store import LocalDiskStore
 from anneal_db import repositories as repo
@@ -51,6 +52,12 @@ def create_app(engine=None, artifacts=None) -> FastAPI:
 
     for r in ALL_ROUTERS:
         app.include_router(r)
+
+    # A malformed path id (GET /runs/not-a-uuid) reaches the DB as a cast error. That is "no such
+    # thing", not a server fault — one handler, instead of typing every path param.
+    @app.exception_handler(DataError)
+    async def _malformed_id_is_404(request: Request, exc: DataError):
+        return JSONResponse({"detail": "not found"}, status_code=404)
 
     # Health/readiness probe for orchestrators (k8s liveness/readiness, load balancers). Kept OUT of
     # the OpenAPI contract (include_in_schema=False) — it is an operational endpoint, not part of the

@@ -12,11 +12,14 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import os
 import re
 from pathlib import Path
 
 from ._env import load_env
+
+_log = logging.getLogger(__name__)
 
 load_env()  # populate API keys from the gitignored repo .env (A15)
 
@@ -105,9 +108,14 @@ def _call(provider: str, system: str, user: str, model: str, max_tokens: int,
 
 def complete(system: str, user: str, model: str = DEFAULT_MODEL, max_tokens: int = 1500,
              image: bytes | str | Path | None = None) -> str:
-    """Try the primary provider, then the configured fallback on ANY error (B6)."""
+    """Try the primary provider, then the configured fallback on ANY error (B6). The fallback is
+    VISIBLE: a WARNING names both providers and the primary's error, so a silently degraded lane
+    (a different model authoring every test) shows up in the logs."""
     errors = []
-    for provider in _providers():
+    providers = list(_providers())
+    for i, provider in enumerate(providers):
+        if i:
+            _log.warning("LLM fallback: %s failed (%s) -> using %s", providers[i - 1], errors[-1], provider)
         try:
             return _call(provider, system, user, model, max_tokens, image)
         except Exception as e:  # noqa: BLE001 — any provider error trips the fallback
@@ -165,6 +173,7 @@ def complete_json(system: str, user: str, model: str = DEFAULT_MODEL, max_tokens
     try:
         return _extract_json(raw)
     except json.JSONDecodeError:
+        _log.warning("LLM reply was not valid JSON (%r); retrying once with a stricter nudge", raw[:120])
         raw2 = complete(system + "\n\nYour previous reply was not valid JSON. Output ONLY a JSON value.",
                         user, model, max_tokens, image=image)
         return _extract_json(raw2)

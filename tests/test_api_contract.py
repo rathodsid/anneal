@@ -105,6 +105,18 @@ def test_legacy_video_endpoint_removed(spec):
 
 # ── live smoke on a real DB: handlers actually validate against the models ──────────────────────
 @pytest.mark.api_contract
+def test_malformed_id_is_404_not_500():
+    """A non-UUID path id is a DB cast error (sqlalchemy DataError); the API answers 404, never a 500
+    with a psycopg traceback — one app-level handler covers every id-taking route."""
+    app = create_app(engine=get_engine())
+    with TestClient(app) as tc:
+        for path in ("/runs/not-a-uuid", "/suite_runs/abc", "/tests/nope", "/incidents/x"):
+            r = tc.get(path)
+            assert r.status_code == 404, (path, r.status_code, r.text[:200])
+            assert r.json() == {"detail": "not found"}
+
+
+@pytest.mark.api_contract
 def test_handlers_validate_against_models_live():
     app = create_app(engine=get_engine())
     with TestClient(app) as tc:

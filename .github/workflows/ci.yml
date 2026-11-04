@@ -54,6 +54,20 @@ jobs:
       - run: uv sync --frozen
       - run: uv run pytest -q -m m0_audit
 
+  cold-lane:
+    name: m0 golden + m1 cold lane + API contract (no LLM keys)
+    runs-on: ubuntu-latest
+    env:
+      ANNEAL_DB_URL: postgresql+psycopg://anneal:anneal@localhost:55432/anneal
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: docker compose up -d --wait postgres golden-app
+      - run: uv run alembic upgrade head
+      - run: uv run playwright install --with-deps chromium
+      - run: uv run pytest -q -m "m0_golden or m1 or api_contract"
+
   console:
     name: console build
     runs-on: ubuntu-latest

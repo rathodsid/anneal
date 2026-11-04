@@ -37,29 +37,32 @@ _PARK = {"expired": ("parked_auth", "AUTH_EXPIRED"),
          "env_infra": ("parked_env", "ENV_INFRA")}
 
 
-async def _acquire_exclusive(engine, target_key):
-    """3.1c — the SESSION-scoped exclusive advisory lock on a dedicated connection, held for the whole
-    run. Polls with pg_try_advisory_lock + `await sleep` so a WAIT yields to other workers (each poll's
-    sync `conn.execute` still momentarily blocks, per the codebase's laptop-scale sync-SQL pattern)."""
+async def _acquire_exclusive(engine, target_key, *, shared=False):
+    """3.1c — the SESSION-scoped advisory lock on a dedicated connection, held for the whole run.
+    Extends LLD §3.1c: an exclusive test takes the key EXCLUSIVELY and every ordinary test takes the
+    SAME key in SHARED mode, so ordinary tests still run concurrently with each other but never
+    alongside an exclusive one (shared, non-namespaceable state is actually never raced). Polls with
+    pg_try_advisory_lock[_shared] + `await sleep` so a WAIT yields to other workers (each poll's sync
+    `conn.execute` still momentarily blocks, per the codebase's laptop-scale sync-SQL pattern)."""
     import asyncio
 
     from sqlalchemy import text
     key = f"{target_key}:exclusive"            # build the lock key in Python — a literal ':exclusive'
     conn = engine.connect()                    # inside text() would be read as a bind parameter
+    fn = "pg_try_advisory_lock_shared" if shared else "pg_try_advisory_lock"
     while True:
-        got = conn.execute(text("select pg_try_advisory_lock(hashtextextended(:k, 0))"),
-                           {"k": key}).scalar()
+        got = conn.execute(text(f"select {fn}(hashtextextended(:k, 0))"), {"k": key}).scalar()
         conn.commit()                          # end the implicit txn; the session-level lock persists
         if got:
             return conn
         await asyncio.sleep(0.05)
 
 
-def _release_exclusive(conn, target_key):
+def _release_exclusive(conn, target_key, *, shared=False):
     from sqlalchemy import text
+    fn = "pg_advisory_unlock_shared" if shared else "pg_advisory_unlock"
     try:
-        conn.execute(text("select pg_advisory_unlock(hashtextextended(:k, 0))"),
-                     {"k": f"{target_key}:exclusive"})
+        conn.execute(text(f"select {fn}(hashtextextended(:k, 0))"), {"k": f"{target_key}:exclusive"})
         conn.commit()
     finally:
         conn.close()
@@ -315,14 +318,15 @@ async def run_suite(engine, artifacts, *, suite_run_id, target_id, max_parallel=
                     claim = repo.claim_next(engine, suite_run_id=suite_run_id, worker_id=wid)
                     if claim is None:
                         return
-                    # §8/3.1c: an exclusive test serializes per target under the advisory lock; it holds
-                    # the lock for its whole run so shared, non-namespaceable state is never raced.
-                    lock = await _acquire_exclusive(engine, target["key"]) if claim["exclusive"] else None
+                    # §8/3.1c: an exclusive test holds the target's advisory lock exclusively for its
+                    # whole run; an ordinary test holds it SHARED — so ordinary tests interleave freely
+                    # but none ever runs alongside an exclusive one (see _acquire_exclusive).
+                    shared = not claim["exclusive"]
+                    lock = await _acquire_exclusive(engine, target["key"], shared=shared)
                     try:
                         results.append(await _run_one(engine, artifacts, browser, target, modules, claim))
                     finally:
-                        if lock is not None:
-                            _release_exclusive(lock, target["key"])
+                        _release_exclusive(lock, target["key"], shared=shared)
 
             await asyncio.gather(*[worker(f"w{i}") for i in range(parallel)])
 
