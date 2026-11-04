@@ -9,10 +9,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { components } from "../api/schema";
-import { ChromeToggles } from "../components/chrome";
+import { RunModal, pollSuiteRun } from "../components/RunModal";
+import { Shell } from "../components/Shell";
 import { PROJECT, pickDefaultTarget } from "../lib/config";
-import { fmtDuration } from "../lib/format";
-import { Pill } from "../lib/verdict";
 
 type Suite = components["schemas"]["Suite"];
 type Target = components["schemas"]["Target"];
@@ -20,7 +19,6 @@ type TestListItem = components["schemas"]["TestListItem"];
 type SuiteRunDetail = components["schemas"]["SuiteRunDetail"];
 
 const isAdhoc = (name: string) => name === "selection-run" || name === "ui-run";
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 type Tab = "saved" | "adhoc" | "all";
 type NewForm = { name: string; picked: Set<string> } | null;
@@ -66,14 +64,34 @@ export function Suites() {
     return (id: string) => m.get(id) ?? id.slice(0, 8);
   }, [tests]);
 
+  async function launch() {
+    if (!run?.targetId) return;
+    const { suite, targetId, trigger } = run;
+    setRun((m) => (m ? { ...m, launching: true, error: null, busyActiveId: null, suiteRun: null } : m));
+    const { data, error, response } = await api.POST("/projects/{project}/suites/{suite_id}/runs", {
+      params: { path: { project: PROJECT, suite_id: suite.id }, query: { target_id: targetId, trigger } },
+    });
+    if (response?.status === 409) {
+      const activeId = (error as { detail?: { active_suite_run_id?: string } } | undefined)?.detail?.active_suite_run_id;
+      setRun((m) => (m ? { ...m, launching: false, busyActiveId: activeId ?? "unknown" } : m));
+      return;
+    }
+    if (error || !data) {
+      setRun((m) => (m ? { ...m, launching: false, error: JSON.stringify(error) } : m));
+      return;
+    }
+    await pollSuiteRun(data.suite_run_id, (sr) => setRun((m) => (m ? { ...m, suiteRun: sr } : m)));
+    setRun((m) => (m ? { ...m, launching: false } : m));
+  }
+
   const counts = useMemo(() => {
     const list = suites ?? [];
     const adhoc = list.filter((s) => isAdhoc(s.name)).length;
     return { saved: list.length - adhoc, adhoc, all: list.length };
   }, [suites]);
 
-  if (error) return <Shell><div className="async err">{error}</div></Shell>;
-  if (!suites) return <Shell><div className="async">Loading suites…</div></Shell>;
+  if (error) return <Shell crumbs={<b>Suites</b>}><div className="async err">{error}</div></Shell>;
+  if (!suites) return <Shell crumbs={<b>Suites</b>}><div className="async">Loading suites…</div></Shell>;
 
   const ql = q.trim().toLowerCase();
   const rows = suites.filter(
@@ -91,7 +109,7 @@ export function Suites() {
   }
 
   return (
-    <Shell>
+    <Shell crumbs={<b>Suites</b>}>
       <div className="content suites-scope">
         <div className="hdrow">
           <div>
@@ -203,10 +221,52 @@ export function Suites() {
 
       {run ? (
         <RunModal
-          state={run}
-          targets={targets}
-          keyOf={keyOf}
-          setState={setRun}
+          state={{
+            title: `Run suite — ${run.suite.name}`,
+            memberKeys: (run.suite.member_test_ids ?? []).map(keyOf),
+            suiteRun: run.suiteRun,
+            launching: run.launching,
+            busyActiveId: run.busyActiveId,
+            error: run.error,
+          }}
+          bodyClass="suites-scope"
+          controls={
+            <div className="runctl">
+              <span className="selctl">
+                <span className="lab">target</span>
+                <select
+                  value={run.targetId}
+                  disabled={run.launching}
+                  onChange={(e) => setRun((m) => (m ? { ...m, targetId: e.target.value } : m))}
+                >
+                  {targets.map((t) => (
+                    <option key={t.id} value={t.id}>{t.key}</option>
+                  ))}
+                </select>
+              </span>
+              <span className="selctl">
+                <span className="lab">trigger</span>
+                <select
+                  value={run.trigger}
+                  disabled={run.launching}
+                  onChange={(e) => setRun((m) => (m ? { ...m, trigger: e.target.value as NonNullable<RunState>["trigger"] } : m))}
+                >
+                  <option value="manual">manual</option>
+                  <option value="api">api</option>
+                  <option value="deploy_hook">deploy_hook</option>
+                </select>
+              </span>
+              <button
+                className="btn primary sm"
+                style={{ marginLeft: "auto" }}
+                disabled={run.launching || !run.targetId}
+                onClick={launch}
+              >
+                ▶ Launch {(run.suite.member_test_ids ?? []).length} test
+                {(run.suite.member_test_ids ?? []).length === 1 ? "" : "s"}
+              </button>
+            </div>
+          }
           onClose={() => setRun(null)}
           onOpenRuns={() => nav("/runs")}
         />
@@ -281,162 +341,3 @@ function NewSuiteModal({
   );
 }
 
-function RunModal({
-  state,
-  targets,
-  keyOf,
-  setState,
-  onClose,
-  onOpenRuns,
-}: {
-  state: NonNullable<RunState>;
-  targets: Target[];
-  keyOf: (id: string) => string;
-  setState: React.Dispatch<React.SetStateAction<RunState>>;
-  onClose: () => void;
-  onOpenRuns: () => void;
-}) {
-  const { suite } = state;
-  const memberKeys = (suite.member_test_ids ?? []).map(keyOf);
-  const sr = state.suiteRun;
-  const done = sr?.state === "done" || sr?.state === "parked";
-  const byKey = new Map((sr?.results ?? []).map((r) => [r.test_key, r]));
-
-  async function poll(suiteRunId: string) {
-    for (let i = 0; i < 600; i++) {
-      const { data } = await api.GET("/suite_runs/{suite_run_id}", { params: { path: { suite_run_id: suiteRunId } } });
-      if (data) {
-        setState((m) => (m ? { ...m, suiteRun: data } : m));
-        if (data.state === "done" || data.state === "parked") {
-          setState((m) => (m ? { ...m, launching: false } : m));
-          return;
-        }
-      }
-      await sleep(500);
-    }
-    setState((m) => (m ? { ...m, launching: false } : m));
-  }
-
-  async function launch() {
-    if (!state.targetId) return;
-    setState((m) => (m ? { ...m, launching: true, error: null, busyActiveId: null, suiteRun: null } : m));
-    const { data, error, response } = await api.POST("/projects/{project}/suites/{suite_id}/runs", {
-      params: { path: { project: PROJECT, suite_id: suite.id }, query: { target_id: state.targetId, trigger: state.trigger } },
-    });
-    if (response?.status === 409) {
-      const activeId = (error as { detail?: { active_suite_run_id?: string } } | undefined)?.detail?.active_suite_run_id;
-      setState((m) => (m ? { ...m, launching: false, busyActiveId: activeId ?? "unknown" } : m));
-      return;
-    }
-    if (error || !data) {
-      setState((m) => (m ? { ...m, launching: false, error: JSON.stringify(error) } : m));
-      return;
-    }
-    poll(data.suite_run_id);
-  }
-
-  return (
-    <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <div className="modal-h">
-          <span className="tt">
-            Run suite — {suite.name}
-            {state.launching ? " · running…" : ""}
-          </span>
-          <button className="x" onClick={onClose}>×</button>
-        </div>
-        <div className="modal-b suites-scope">
-          {!sr && !state.busyActiveId && !state.error ? (
-            <div className="runctl">
-              <span className="selctl">
-                <span className="lab">target</span>
-                <select
-                  value={state.targetId}
-                  disabled={state.launching}
-                  onChange={(e) => setState((m) => (m ? { ...m, targetId: e.target.value } : m))}
-                >
-                  {targets.map((t) => (
-                    <option key={t.id} value={t.id}>{t.key}</option>
-                  ))}
-                </select>
-              </span>
-              <span className="selctl">
-                <span className="lab">trigger</span>
-                <select
-                  value={state.trigger}
-                  disabled={state.launching}
-                  onChange={(e) => setState((m) => (m ? { ...m, trigger: e.target.value as NonNullable<RunState>["trigger"] } : m))}
-                >
-                  <option value="manual">manual</option>
-                  <option value="api">api</option>
-                  <option value="deploy_hook">deploy_hook</option>
-                </select>
-              </span>
-              <button
-                className="btn primary sm"
-                style={{ marginLeft: "auto" }}
-                disabled={state.launching || !state.targetId}
-                onClick={launch}
-              >
-                ▶ Launch {memberKeys.length} test{memberKeys.length === 1 ? "" : "s"}
-              </button>
-            </div>
-          ) : null}
-
-          {state.busyActiveId ? (
-            <div className="busy409">
-              <b>Target busy</b> — one active run per target (409). An active suite run{" "}
-              <span className="mono">{state.busyActiveId.slice(0, 8)}</span> is already in flight. Wait for it to
-              finish, then relaunch.
-            </div>
-          ) : state.error ? (
-            <div className="busy409">Launch failed: {state.error}</div>
-          ) : (
-            <>
-              {memberKeys.map((k) => {
-                const r = byKey.get(k);
-                return (
-                  <div className={`rt-row ${r ? "" : "pending"}`} key={k}>
-                    {r ? (
-                      <span style={{ flex: "none" }}><Pill verdict={r.verdict} /></span>
-                    ) : (
-                      <span>{state.launching ? "◐" : "○"}</span>
-                    )}
-                    <span className="k">{k}</span>
-                    {r?.error_class ? <span className="ec">{r.error_class}</span> : null}
-                    <span className="d">{r ? fmtDuration(r.duration_ms) : ""}</span>
-                  </div>
-                );
-              })}
-              {done && sr?.verdict ? (
-                <div className="suiteverdict">
-                  <span className="lbl">suite verdict</span>
-                  <Pill verdict={sr.verdict} />
-                  <button className="btn sm" style={{ marginLeft: "auto" }} onClick={onOpenRuns}>
-                    open runs →
-                  </button>
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="main">
-      <header className="topbar">
-        <nav className="crumbs">
-          <b>Suites</b>
-        </nav>
-        <div className="top-actions">
-          <ChromeToggles />
-        </div>
-      </header>
-      {children}
-    </div>
-  );
-}

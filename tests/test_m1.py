@@ -367,8 +367,10 @@ def test_console_is_served(engine):
     from anneal_api.app import create_app
     app = create_app(engine=engine)
     with TestClient(app) as tc:
-        html = tc.get("/").text
-        assert "Anneal" in html and "runs" in html.lower()
+        # ANNEAL_FRONTEND_DIST unset (the test env): "/" states how to serve the console, nothing more
+        r = tc.get("/")
+        assert r.status_code == 200
+        assert r.text == "Anneal API is up. Set ANNEAL_FRONTEND_DIST=frontend/dist to serve the console."
 
 
 @pytest.mark.m1

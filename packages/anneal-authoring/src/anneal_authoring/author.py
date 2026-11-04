@@ -28,7 +28,7 @@ from anneal_executor.session import is_login_page
 from anneal_executor.settle import await_settled, await_transition
 from anneal_llm.client import complete_json
 
-from .perception import INVENTORY_K, inventory_text, rank_inventory, snapshot_interactive
+from .perception import INVENTORY_K, inventory_text, rank_inventory, snapshot_interactive, snapshot_text_anchors
 from .prompts import ACT_PICK_SYSTEM, ASSERT_PICK_SYSTEM, SCAFFOLD_SYSTEM, VERIFY_ACT_SYSTEM
 
 _ALNUM = string.ascii_lowercase + string.digits
@@ -715,6 +715,11 @@ async def author_bundle(page, *, nl, project_id, test_id, persona, target_key, s
         # ranked slice, so a real route is never dropped just because it ranked below the budget.
         observed_paths |= {_norm_path(e["href"]) for e in raw if e.get("href")}
         if step.get("type") == "assert":
+            # an oracle may key on STATIC text (a heading, a testid text leaf) the interactive
+            # inventory never lists — observed, so the picker cannot invent text from the step wording
+            raw = raw + await snapshot_text_anchors(page)
+            inv = rank_inventory(raw, step["text"], k=INVENTORY_K)
+            inv_text = inventory_text(inv)
             pick = complete_json(ASSERT_PICK_SYSTEM,
                                  f'Step: "{step["text"]}"\n\nINVENTORY:\n{inv_text}',
                                  **({"model": model} if model else {}))
@@ -779,6 +784,8 @@ async def author_bundle(page, *, nl, project_id, test_id, persona, target_key, s
                     "the durable outcome it announces instead", scaffold_flagged=False,
                     skipped_steps=skipped_steps, test_id=test_id, kind="over_plan")
                 continue
+            if _DEBUG:
+                print(f"[author] assert {step['text']!r} -> s{sid} {assert_obj}", flush=True)
             bundle_steps.append({"id": f"s{sid}", "intent": step["text"], "action": "assert",
                                  "assert": assert_obj, "postcondition": None, "reload_on_miss": True,
                                  "budget_ms": 10000})

@@ -51,7 +51,7 @@ cd frontend && npm install && npm run dev              # the console (Vite, :517
 ```
 
 - Dev CORS: set `ANNEAL_CORS_ORIGINS=http://localhost:5173` on the API; point the client with `VITE_API_BASE=http://localhost:8080`.
-- Prod frontend: `npm run build`, then set `ANNEAL_FRONTEND_DIST=frontend/dist` → FastAPI serves it same-origin (one deployable). Unset → transitional v0 console at `/`.
+- Prod frontend: `npm run build`, then set `ANNEAL_FRONTEND_DIST=frontend/dist` → FastAPI serves it same-origin (one deployable). Unset → `/` returns a plain-text pointer to this setting.
 - After a backend change, regenerate the typed client: `cd frontend && npm run gen:api` (dumps `/openapi.json` → `src/api/schema.d.ts`). Never hand-write fetch shapes.
 - Project id in dev/golden is `"golden"`. `./verify.sh m1` leaves seeded data.
 

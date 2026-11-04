@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import text
@@ -12,10 +11,6 @@ from sqlalchemy.exc import IntegrityError
 
 from .engine import mint_token
 from .vault import SESSION_ANCHOR
-
-
-def _now():
-    return datetime.now(timezone.utc)
 
 
 # ── seeding (a target + a frozen read-only test + a suite) ───────────────────

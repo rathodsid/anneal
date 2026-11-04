@@ -10,13 +10,8 @@ export function artifactUrl(runId: string, kind: "trace" | "video" | "screenshot
   return `${API_BASE}/runs/${runId}/artifacts/${kind}`;
 }
 
-// Default target selection across screens: prefer the canonical production target, then any
-// non-expired target, then whatever's first.
+// Default target selection across screens: the first target. Nothing in a key's spelling says
+// which environment is canonical — that is TargetProfile data, not a naming convention.
 export function pickDefaultTarget<T extends { id: string; key: string }>(targets: T[]): string {
-  return (
-    targets.find((t) => /prod/i.test(t.key))?.id ??
-    targets.find((t) => !t.key.includes("expired"))?.id ??
-    targets[0]?.id ??
-    ""
-  );
+  return targets[0]?.id ?? "";
 }

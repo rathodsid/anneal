@@ -10,6 +10,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { components } from "../api/schema";
 import { ChromeToggles } from "../components/chrome";
+import { RunModal, pollSuiteRun as pollRun, type RunModalData } from "../components/RunModal";
 import { PROJECT, pickDefaultTarget } from "../lib/config";
 import { fmtDuration } from "../lib/format";
 import { Pill } from "../lib/verdict";
@@ -19,18 +20,9 @@ type Target = components["schemas"]["Target"];
 type TestListItem = components["schemas"]["TestListItem"];
 type RunListItem = components["schemas"]["RunListItem"];
 type SelectionPick = components["schemas"]["SelectionPick"];
-type SuiteRunDetail = components["schemas"]["SuiteRunDetail"];
 
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-type RunModalState = {
-  title: string;
-  memberKeys: string[];
-  suiteRun: SuiteRunDetail | null;
-  launching: boolean;
-  busyActiveId?: string | null;
-  error?: string | null;
-} | null;
+type RunModalState = RunModalData | null;
 
 type FormState = { mode: "create" | "edit"; name: string; picked: Set<string> } | null;
 
@@ -46,9 +38,7 @@ export function Suite() {
   const [latest, setLatest] = useState<Map<string, RunListItem>>(new Map());
   const [tab, setTab] = useState<"members" | "select">("members");
 
-  const [change, setChange] = useState(
-    'Redesigned the workflow creation flow — moved "Create Workflow" into a "+ New" menu and added an "Assign to campaign" step before publish.',
-  );
+  const [change, setChange] = useState("");
   const [picks, setPicks] = useState<SelectionPick[] | null>(null);
   const [selecting, setSelecting] = useState(false);
 
@@ -97,19 +87,7 @@ export function Suite() {
 
   // ── launch (async 202 → poll) ────────────────────────────────────────────
   async function pollSuiteRun(suiteRunId: string) {
-    for (let i = 0; i < 600; i++) {
-      const { data } = await api.GET("/suite_runs/{suite_run_id}", {
-        params: { path: { suite_run_id: suiteRunId } },
-      });
-      if (data) {
-        setRunModal((m) => (m ? { ...m, suiteRun: data } : m));
-        if (data.state === "done" || data.state === "parked") {
-          setRunModal((m) => (m ? { ...m, launching: false } : m));
-          return;
-        }
-      }
-      await sleep(500);
-    }
+    await pollRun(suiteRunId, (sr) => setRunModal((m) => (m ? { ...m, suiteRun: sr } : m)));
     setRunModal((m) => (m ? { ...m, launching: false } : m));
   }
 
@@ -305,7 +283,11 @@ export function Suite() {
           <section>
             <div className="selbox">
               <label>describe what changed — Anneal scores every test against it (§11)</label>
-              <textarea value={change} onChange={(e) => setChange(e.target.value)} />
+              <textarea
+                value={change}
+                onChange={(e) => setChange(e.target.value)}
+                placeholder="Describe what changed in the app, in plain English — the selector picks the affected tests."
+              />
               <div className="row">
                 <button className="btn primary sm" onClick={previewSelection} disabled={selecting || !targetId}>
                   {selecting ? "Scoring…" : "Preview selection"}
@@ -321,7 +303,7 @@ export function Suite() {
       </div>
 
       {runModal ? (
-        <RunModal state={runModal} onClose={() => setRunModal(null)} onOpenActive={() => nav("/runs")} />
+        <RunModal state={runModal} onClose={() => setRunModal(null)} onOpenRuns={() => nav("/runs")} />
       ) : null}
       {form ? (
         <SuiteFormModal
@@ -397,101 +379,6 @@ function SelectionResult({ picks, onRun, disabled }: { picks: SelectionPick[]; o
         </button>
       </div>
     </>
-  );
-}
-
-function RunModal({
-  state,
-  onClose,
-  onOpenActive,
-}: {
-  state: NonNullable<RunModalState>;
-  onClose: () => void;
-  onOpenActive: (id: string) => void;
-}) {
-  const sr = state.suiteRun;
-  const parked = sr?.state === "parked";
-  const done = sr?.state === "done" || sr?.state === "parked";
-  const byKey = new Map((sr?.results ?? []).map((r) => [r.test_key, r]));
-
-  return (
-    <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <div className="modal-h">
-          <span className="tt">
-            {state.title}
-            {state.launching ? " · running…" : ""}
-          </span>
-          <button className="x" onClick={onClose}>
-            ×
-          </button>
-        </div>
-        <div className="modal-b">
-          {state.busyActiveId ? (
-            <div className="busy409">
-              <b>Target busy</b> — one active run per target (409). An active suite run{" "}
-              <span className="mono">{state.busyActiveId.slice(0, 8)}</span> is already in flight. Wait for it to
-              finish, then relaunch.
-            </div>
-          ) : state.error ? (
-            <div className="busy409">Launch failed: {state.error}</div>
-          ) : parked && (sr?.results?.length ?? 0) === 0 ? (
-            <div className="parkbanner">
-              <h4>
-                <Pill verdict={sr!.verdict ?? "parked_auth"} /> {sr!.park_reason}
-              </h4>
-              <p>
-                The probe gate found the seeded session degraded, so no test was claimed (a degraded session never
-                counts as a failure, §9). The suite is <b>parked</b>, not red.
-              </p>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn primary sm" disabled>
-                  ⚿ Re-seed session
-                </button>
-                <button className="btn sm" onClick={onClose}>
-                  Dismiss
-                </button>
-              </div>
-              <div className="stub" style={{ marginTop: 10 }}>
-                ◔ session health &amp; re-seed are target-state (owned by the auth workstream; no endpoint yet)
-              </div>
-            </div>
-          ) : (
-            <>
-              {state.memberKeys.map((k) => {
-                const r = byKey.get(k);
-                const glyph = r ? null : state.launching ? <span className="spin">◐</span> : <span style={{ color: "var(--faint)" }}>○</span>;
-                return (
-                  <div className={`rt-row ${r ? "" : "pending"}`} key={k}>
-                    <span className="g">{r ? null : glyph}</span>
-                    {r ? (
-                      <span style={{ flex: "none" }}>
-                        <Pill verdict={r.verdict} />
-                      </span>
-                    ) : null}
-                    <span className="k">{k}</span>
-                    <span className="d">{r ? fmtDuration(r.duration_ms) : ""}</span>
-                  </div>
-                );
-              })}
-              {done && sr?.verdict ? (
-                <div className="suiteverdict">
-                  <span className="lbl">suite verdict (D29)</span>
-                  <Pill verdict={sr.verdict} />
-                  <button
-                    className="btn sm"
-                    style={{ marginLeft: "auto" }}
-                    onClick={() => onOpenActive(sr.id)}
-                  >
-                    open runs →
-                  </button>
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
   );
 }
 

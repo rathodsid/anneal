@@ -253,7 +253,7 @@ uv run uvicorn anneal_api.app:app --host 0.0.0.0 --port 8080
   `ANNEAL_FRONTEND_DIST` needs none. Set `ANNEAL_CORS_ORIGINS` (comma-separated) otherwise.
 
 ### Health / smoke
-- **Liveness:** `GET /` returns 200 (SPA or transitional console).
+- **Liveness:** `GET /` returns 200 (the SPA, or a plain-text pointer when `ANNEAL_FRONTEND_DIST` is unset).
 - **DB reachable:** `GET /projects/golden/targets` returns JSON (no 5xx).
 - **Full gate (dev/CI, not prod):** `./verify.sh` — the source of truth for "the build works."
 
@@ -296,7 +296,7 @@ All config is plain `os.getenv` (no pydantic settings). Complete list:
 | `ANNEAL_DB_URL` | `postgresql+psycopg://anneal:anneal@localhost:55432/anneal` | db, migrations | Postgres DSN. **Set in prod.** |
 | `ANNEAL_VAULT_KEY` | *(none — refuses secrets if unset)* | db/vault | Fernet key for credential encryption. **Stateful — back up.** |
 | `ANNEAL_ARTIFACTS` | `./.anneal/artifacts` | api, authoring | Evidence dir. **Shared volume for multi-replica.** |
-| `ANNEAL_FRONTEND_DIST` | *(unset → transitional console)* | api | Dir of built SPA to mount at `/`. Set to `frontend/dist` in prod. |
+| `ANNEAL_FRONTEND_DIST` | *(unset → `/` returns a plain-text pointer)* | api | Dir of built SPA to mount at `/`. Set to `frontend/dist` in prod. |
 | `ANNEAL_CORS_ORIGINS` | `""` | api | Comma-separated CORS allowlist (dev cross-origin only). |
 | `ANTHROPIC_API_KEY` | *(none)* | llm | Primary LLM provider key (HOT/WARM lanes). |
 | `OPENAI_API_KEY` | *(none)* | llm | Fallback provider key. |

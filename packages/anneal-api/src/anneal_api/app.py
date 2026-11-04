@@ -12,7 +12,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import DataError
@@ -21,7 +21,6 @@ from anneal_artifacts.store import LocalDiskStore
 from anneal_db import repositories as repo
 from anneal_db.engine import get_engine
 
-from .console import CONSOLE_HTML
 from .routers import ALL as ALL_ROUTERS
 
 
@@ -113,9 +112,9 @@ def create_app(engine=None, artifacts=None) -> FastAPI:
 
         app.mount("/", StaticFiles(directory=dist, html=True), name="frontend")
     else:
-        @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-        def console():
-            return CONSOLE_HTML
+        @app.get("/", response_class=PlainTextResponse, include_in_schema=False)
+        def root():
+            return "Anneal API is up. Set ANNEAL_FRONTEND_DIST=frontend/dist to serve the console."
 
     return app
 

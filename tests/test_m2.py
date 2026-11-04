@@ -298,6 +298,37 @@ def test_landmark_scope_disambiguates_duplicate_rendering():
 
 
 @pytest.mark.m2
+def test_assert_picker_sees_static_text_anchors():
+    """On a page with nothing to click (a nav label and a heading) the interactive inventory is empty
+    and the oracle picker would INVENT text from the step wording. Headings / testid text leaves are
+    observed text: perception lists them, the regrounder keys on them (testid-first). No LLM."""
+    from anneal_authoring.author import _exact_descriptor, _target_from_descriptor
+    from anneal_authoring.perception import snapshot_interactive, snapshot_text_anchors
+    from playwright.async_api import async_playwright
+
+    async def _run():
+        async with async_playwright() as p:
+            br = await p.chromium.launch()
+            try:
+                page = await (await br.new_context()).new_page()
+                await page.set_content('<nav>Private</nav><h1 data-testid="private-content">Members only</h1>'
+                                       '<a href="/x">Edit <h2>not an anchor</h2></a>')
+                assert await snapshot_interactive(page) and len(await snapshot_interactive(page)) == 1   # the link
+                anchors = await snapshot_text_anchors(page)
+                assert [(a["tag"], a["role"], a["text"], a["testid"]) for a in anchors] == \
+                    [("h1", "heading", "Members only", "private-content")]       # the heading inside the link is a control's
+                d = _exact_descriptor(anchors, "Members only")
+                assert d is anchors[0]
+                t = _target_from_descriptor(d)
+                assert t["strategy"] == "testid" and t["selector"] == "private-content"
+                assert t["fallbacks"] == {"text": "Members only", "role": "heading"}
+            finally:
+                await br.close()
+    import asyncio
+    asyncio.run(_run())
+
+
+@pytest.mark.m2
 def test_exact_descriptor_uses_implicit_role():
     """The assert regrounder keys on the ACCESSIBLE role (a native <a href>/<button> has one without a
     role attribute) — otherwise a plain link is never regrounded and the oracle stays a bare-text rung."""
@@ -330,11 +361,23 @@ def test_resolver_prefers_exact_accessible_name_and_guard_reads_page_title():
                 assert kind == "role" and await loc.get_attribute("aria-label") == "Add"
                 loc, _ = await resolve(page, [Rung("role", "button", name="Create", priority=2)], 2000)
                 assert await loc.inner_text() == "Create campaign"       # substring fallback still works
+                # (2a) a PAGE-LEVEL control (no dialog/row/form ancestor) on a dedicated delete route:
+                # the title is the page's own identity → passes
                 await page.set_content('<title>Delete "Item tok123xyz"</title>'
-                                       '<dialog open><p>Delete this item?</p><button>Do it</button></dialog>')
-                await guard(page.get_by_role("button", name="Do it"), "tok123xyz")   # title carries it
+                                       '<main><p>This cannot be undone.</p><button>Do it</button></main>')
+                await guard(page.get_by_role("button", name="Do it"), "tok123xyz")
                 with pytest.raises(PolicyStop):
                     await guard(page.get_by_role("button", name="Do it"), "othertoken")
+                # (2b) a dialog that names NO entity on a token-titled detail page: the dialog is the
+                # authoritative scope and says nothing about this run's entity → refused
+                await page.set_content('<title>Item tok123xyz</title>'
+                                       '<dialog open><p>Delete all items?</p><button>Do it</button></dialog>')
+                with pytest.raises(PolicyStop):
+                    await guard(page.get_by_role("button", name="Do it"), "tok123xyz")
+                # (2c) a dialog that DOES name the entity still passes on its own text
+                await page.set_content('<title>Items</title>'
+                                       '<dialog open><p>Delete "Item tok123xyz"?</p><button>Do it</button></dialog>')
+                await guard(page.get_by_role("button", name="Do it"), "tok123xyz")
             finally:
                 await br.close()
     import asyncio

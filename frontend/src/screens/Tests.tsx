@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { components } from "../api/schema";
-import { ChromeToggles } from "../components/chrome";
+import { Shell } from "../components/Shell";
 import { LabelChips, useProjectLabels } from "../components/labels";
 import { PROJECT } from "../lib/config";
 import { fmtDuration } from "../lib/format";
@@ -178,8 +178,8 @@ export function Tests() {
     setLaunch({ label, kind: "error", detail: "the run did not reach a terminal state" });
   }
 
-  if (error) return <Shell><div className="async err">{error}</div></Shell>;
-  if (!tests) return <Shell><div className="async">Loading tests…</div></Shell>;
+  if (error) return <Shell crumbs={<b>Tests</b>}><div className="async err">{error}</div></Shell>;
+  if (!tests) return <Shell crumbs={<b>Tests</b>}><div className="async">Loading tests…</div></Shell>;
 
   const ql = q.trim().toLowerCase();
 
@@ -207,6 +207,7 @@ export function Tests() {
 
   return (
     <Shell
+      crumbs={<b>Tests</b>}
       actions={
         <button className="kbtn" onClick={collapseAll}>
           {allClosed ? "expand all" : "collapse all"}
@@ -497,23 +498,6 @@ function TestRow({
           <span className="mono" style={{ color: "var(--faint)", fontSize: 11 }}>never run</span>
         )}
       </div>
-    </div>
-  );
-}
-
-function Shell({ children, actions }: { children: React.ReactNode; actions?: React.ReactNode }) {
-  return (
-    <div className="main">
-      <header className="topbar">
-        <nav className="crumbs">
-          <b>Tests</b>
-        </nav>
-        <div className="top-actions">
-          {actions}
-          <ChromeToggles />
-        </div>
-      </header>
-      {children}
     </div>
   );
 }

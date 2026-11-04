@@ -160,6 +160,41 @@ async def snapshot_interactive(page) -> list[dict]:
         return []
 
 
+# Visible STATIC text an oracle may key on — headings and testid-bearing text leaves — which the
+# interactive inventory never lists (nothing to click). Same descriptor shape as `describe`, so the
+# ranker, the picker and `_target_from_descriptor` treat them like any observed element.
+_ANCHORS_JS = r"""() => {
+  const SEL = 'h1,h2,h3,h4,h5,h6,[role=heading],[data-testid]';
+  const CTRL = 'a,button,input,textarea,select,[role=button],[role=link],[role=combobox],[role=option],[role=tab],[role=menuitem]';
+  const out = [];
+  for (const el of document.querySelectorAll(SEL)) {
+    if (el.matches(CTRL) || el.closest(CTRL) || el.querySelector(CTRL)) continue;   // controls: the interactive inventory's
+    const r = el.getBoundingClientRect();
+    if (r.width <= 2 || r.height <= 2) continue;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || cs.opacity === '0') continue;
+    const txt = (el.innerText || '').trim().slice(0, 80);
+    if (!txt) continue;
+    const heading = /^h[1-6]$/i.test(el.tagName) || el.getAttribute('role') === 'heading';
+    out.push({ref: out.length, tag: el.tagName.toLowerCase(), testid: el.getAttribute('data-testid') || null,
+              role: heading ? 'heading' : null, type: null, leaf: false, name: null, placeholder: null,
+              href: null, text: txt, row: null, landmark: null});
+    if (out.length >= 80) break;
+  }
+  return out;
+}"""
+
+
+async def snapshot_text_anchors(page) -> list[dict]:
+    """A 'verify X renders' oracle on a page with nothing to click must still pick from OBSERVED text
+    (B3 for oracles), never invent it from the step wording — so the assert picker also sees the page's
+    visible headings and testid-bearing text leaves."""
+    try:
+        return await page.evaluate(_ANCHORS_JS)
+    except Exception:
+        return []
+
+
 import math
 import re as _re
 

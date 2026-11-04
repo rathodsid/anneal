@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { components } from "../api/schema";
-import { ChromeToggles } from "../components/chrome";
+import { Shell } from "../components/Shell";
 import { LabelEditor, useProjectLabels } from "../components/labels";
 import { API_BASE, PROJECT } from "../lib/config";
 import { fmtDuration, relTime } from "../lib/format";
@@ -553,16 +553,8 @@ export function TestViewer() {
 // shell wrapper so loading/error states keep the chrome.
 function frame(body: React.ReactNode, title: string) {
   return (
-    <div className="main tv">
-      <header className="topbar">
-        <nav className="crumbs">
-          <Link to="/runs">Tests</Link> <span className="sep">/</span> <b>{title}</b>
-        </nav>
-        <div className="top-actions">
-          <ChromeToggles />
-        </div>
-      </header>
+    <Shell className="tv" crumbs={<><Link to="/runs">Tests</Link> <span className="sep">/</span> <b>{title}</b></>}>
       {body}
-    </div>
+    </Shell>
   );
 }

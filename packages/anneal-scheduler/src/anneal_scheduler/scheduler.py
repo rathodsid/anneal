@@ -41,21 +41,22 @@ async def _acquire_exclusive(engine, target_key, *, shared=False):
     """3.1c — the SESSION-scoped advisory lock on a dedicated connection, held for the whole run.
     Extends LLD §3.1c: an exclusive test takes the key EXCLUSIVELY and every ordinary test takes the
     SAME key in SHARED mode, so ordinary tests still run concurrently with each other but never
-    alongside an exclusive one (shared, non-namespaceable state is actually never raced). Polls with
-    pg_try_advisory_lock[_shared] + `await sleep` so a WAIT yields to other workers (each poll's sync
-    `conn.execute` still momentarily blocks, per the codebase's laptop-scale sync-SQL pattern)."""
+    alongside an exclusive one (shared, non-namespaceable state is actually never raced). Uses the
+    BLOCKING pg_advisory_lock[_shared] on a worker thread — Postgres's own queue: a waiting exclusive
+    acquirer blocks NEW shared acquires behind it, so it runs as soon as in-flight ordinary tests
+    finish instead of starving behind workers that keep re-taking the shared lock."""
     import asyncio
 
     from sqlalchemy import text
     key = f"{target_key}:exclusive"            # build the lock key in Python — a literal ':exclusive'
+    # Pool budget: EVERY worker holds this dedicated connection for its whole run (session-scoped
+    # lock), plus transient ones for repo calls. max_parallel ≤ 4 fits SQLAlchemy's default pool
+    # (5 + 10 overflow); raising it means sizing the pool too.
     conn = engine.connect()                    # inside text() would be read as a bind parameter
-    fn = "pg_try_advisory_lock_shared" if shared else "pg_try_advisory_lock"
-    while True:
-        got = conn.execute(text(f"select {fn}(hashtextextended(:k, 0))"), {"k": key}).scalar()
-        conn.commit()                          # end the implicit txn; the session-level lock persists
-        if got:
-            return conn
-        await asyncio.sleep(0.05)
+    fn = "pg_advisory_lock_shared" if shared else "pg_advisory_lock"
+    await asyncio.to_thread(conn.execute, text(f"select {fn}(hashtextextended(:k, 0))"), {"k": key})
+    conn.commit()                              # end the implicit txn; the session-level lock persists
+    return conn
 
 
 def _release_exclusive(conn, target_key, *, shared=False):

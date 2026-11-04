@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from anneal_executor.session import is_login_page
+from anneal_executor.settle import await_settled
 
 
 @dataclass(frozen=True)
@@ -113,12 +114,12 @@ async def _clerk_login(page, creds) -> None:
     pwd = page.locator("input[type=password]:visible")
     if await pwd.count() == 0:                         # two-step: reveal the password field first
         await _clerk_continue(page)
-        await page.wait_for_timeout(1800)
+        await await_settled(page)
         pwd = page.locator("input[type=password]:visible")
     await pwd.first.wait_for(state="visible", timeout=10000)
     await _fill_verified(pwd.first, creds.password)
     await _clerk_continue(page)
-    await page.wait_for_timeout(4000)  # Clerk leaves a #/redirect fragment briefly
+    await await_settled(page)
 
 
 async def _form_login(page, creds) -> None:
@@ -139,7 +140,7 @@ async def _form_login(page, creds) -> None:
                     "button[type=submit]", "input[type=submit]"):
             try:
                 await page.locator(f"{sel}:visible").first.click(timeout=4000)
-                await page.wait_for_timeout(1800)
+                await await_settled(page)
                 break
             except Exception:
                 continue
@@ -155,7 +156,7 @@ async def _form_login(page, creds) -> None:
             break
         except Exception:
             continue
-    await page.wait_for_timeout(4000)  # post-submit settle
+    await await_settled(page)
 
 
 async def _no_auth(page, creds) -> None:
@@ -229,7 +230,7 @@ async def login(page, auth_cfg: dict, creds, *, base_url: str) -> LoginOutcome:
     # (ground rule 3) rather than smudging the infra/auth boundary into a park (probe already proved
     # the target reachable moments earlier).
     await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-    await page.wait_for_timeout(800)
+    await await_settled(page)
 
     # diagnose hard-auth BEFORE any credential submission (T12/T13: zero attempts on captcha/OTP)
     reason = await hard_auth_signal(page, base_url)
@@ -240,7 +241,7 @@ async def login(page, auth_cfg: dict, creds, *, base_url: str) -> LoginOutcome:
         await strategy(page, creds)
     except Exception:
         pass                                           # evaluate the page the strategy left us on
-    await page.wait_for_timeout(800)
+    await await_settled(page)
     if not await is_login_page(page):
         return LoginOutcome.ok()
     reason = await hard_auth_signal(page, base_url)    # a hard signal may appear post-submit (2FA)

@@ -10,6 +10,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { components } from "../api/schema";
 import { ChromeToggles } from "../components/chrome";
+import { Shell } from "../components/Shell";
 import { artifactUrl, PROJECT } from "../lib/config";
 import { Pill } from "../lib/verdict";
 
@@ -425,9 +426,9 @@ function Frame({ runId }: { runId?: string | null }) {
 
 function frame(body: React.ReactNode, id: string, stateLabel: string | null) {
   return (
-    <div className="main">
-      <header className="topbar">
-        <nav className="crumbs">
+    <Shell
+      crumbs={
+        <>
           <Link to="/incidents">Incidents</Link> <span className="sep">/</span> <b>{id.slice(0, 8)}</b>
           {stateLabel ? (
             <span className={`pill ${stateLabel.startsWith("open") ? "v-red" : "v-green"}`} style={{ marginLeft: 6 }}>
@@ -435,12 +436,10 @@ function frame(body: React.ReactNode, id: string, stateLabel: string | null) {
               {stateLabel}
             </span>
           ) : null}
-        </nav>
-        <div className="top-actions">
-          <ChromeToggles />
-        </div>
-      </header>
+        </>
+      }
+    >
       {body}
-    </div>
+    </Shell>
   );
 }
