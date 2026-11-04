@@ -121,10 +121,12 @@ async def run_events(run_result_id: str, eng: Engine, after: int = 0):
     async def gen():
         cursor = after or 0
         while True:
-            for row in repo.get_steps(eng, run_result_id=run_result_id, after=cursor):
+            # sync repo calls go to a worker thread: one open console tab polls every 250 ms and
+            # must not stall uvicorn's loop for every other request
+            for row in await asyncio.to_thread(repo.get_steps, eng, run_result_id=run_result_id, after=cursor):
                 cursor = row["id"]
                 yield f"event: step\ndata: {json.dumps(row, default=str)}\n\n"
-            run = repo.get_run(eng, run_result_id=run_result_id)
+            run = await asyncio.to_thread(repo.get_run, eng, run_result_id=run_result_id)
             if run["verdict"] != "running":
                 terminal = {"verdict": run["verdict"], "error_class": run["error_class"],
                             "duration_ms": run["duration_ms"]}

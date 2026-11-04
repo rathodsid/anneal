@@ -50,12 +50,14 @@ async def suite_run_events(suite_run_id: str, eng: Engine, after: int = 0):
     async def gen():
         cursor = after or 0
         while True:
-            for row in repo.suite_run_step_events_after(eng, suite_run_id=suite_run_id, after=cursor):
+            # sync repo calls go to a worker thread (see runs.run_events)
+            for row in await asyncio.to_thread(repo.suite_run_step_events_after, eng,
+                                               suite_run_id=suite_run_id, after=cursor):
                 cursor = row["id"]
                 yield f"event: step\ndata: {json.dumps(row, default=str)}\n\n"
-            sr = repo.get_suite_run(eng, suite_run_id=suite_run_id)
+            sr = await asyncio.to_thread(repo.get_suite_run, eng, suite_run_id=suite_run_id)
             if sr["state"] in _TERMINAL:
-                sr["results"] = repo.suite_run_results(eng, suite_run_id=suite_run_id)
+                sr["results"] = await asyncio.to_thread(repo.suite_run_results, eng, suite_run_id=suite_run_id)
                 yield f"event: terminal\ndata: {json.dumps(sr, default=str)}\n\n"
                 return
             await asyncio.sleep(0.25)
