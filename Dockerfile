@@ -18,9 +18,6 @@ WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./frontend/
 RUN cd frontend && npm ci
 COPY frontend/ ./frontend/
-# The SPA imports the canonical design tokens from ../../design/tokens.css
-# (single source of truth outside frontend/) — must resolve to /app/design/.
-COPY design/tokens.css ./design/tokens.css
 RUN cd frontend && npm run build   # emits /app/frontend/dist
 
 # ── Stage 2: python runtime ──────────────────────────────────────────────────

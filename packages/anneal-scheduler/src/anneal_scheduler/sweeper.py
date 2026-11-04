@@ -46,10 +46,18 @@ def _collection_paths(network: list[dict]) -> list[str]:
 
 
 def _entities(data):
-    """Yield (id, entity) for the two common collection shapes: {id: {...}} or [ {id|_id: …} ]."""
+    """Yield (id, entity) for the common collection shapes: {id: {...}}, [ {id|_id: …} ], or an
+    envelope {"items": [...], "total": n} (one list-valued key — recurse into it). A scalar-valued key
+    is never an entity: yielding "items"/"total" as ids would DELETE /<res>/items against the live app
+    and leave the real token-bearing residue unswept."""
     if isinstance(data, dict):
+        lists = [v for v in data.values() if isinstance(v, list)]
+        if len(lists) == 1:
+            yield from _entities(lists[0])
+            return
         for k, v in data.items():
-            yield k, v
+            if isinstance(v, dict):
+                yield k, v
     elif isinstance(data, list):
         for v in data:
             if isinstance(v, dict):

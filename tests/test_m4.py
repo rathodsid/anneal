@@ -227,3 +227,16 @@ def test_change_driven_selection_scores_and_explains(env):
     # the unmapped test is included cold-start (safety), with a reason that says so
     assert by_key["login-smoke"]["cold_start"] is True and by_key["login-smoke"]["selected"] is True
     assert "cold-start" in by_key["login-smoke"]["reason"]
+
+
+@pytest.mark.m4
+def test_sweeper_entities_envelope_shape():
+    """The sweeper's fallback must never take an envelope's keys as entity ids: for a paginated
+    {"items": [...], "total": n} collection the victims are the items, not "items"/"total" (which
+    would DELETE /<res>/items against the live app and leave the real residue unswept)."""
+    from anneal_scheduler.sweeper import _entities
+    env = {"items": [{"id": 7, "name": "a"}, {"_id": "b2", "name": "b"}], "total": 2, "page": 1}
+    assert list(_entities(env)) == [(7, env["items"][0]), ("b2", env["items"][1])]
+    keyed = {"x1": {"name": "a"}, "count": 1}                   # {id: {...}} map with a scalar sibling
+    assert list(_entities(keyed)) == [("x1", {"name": "a"})]
+    assert list(_entities([{"id": 1}, "junk"])) == [(1, {"id": 1})]

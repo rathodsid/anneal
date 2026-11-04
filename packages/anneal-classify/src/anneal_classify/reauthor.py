@@ -71,7 +71,8 @@ async def _verify_green(engine, artifacts, target, bundle: dict, modules, *, red
     ctxc = CompileContext(token=tok, today=date.today(), date_format=target.get("date_format") or "%Y-%m-%d",
                           params={}, modules=modules)
     plan = compile_bundle(Bundle.model_validate(bundle), ctxc)
-    storage_state = repo.get_storage_state(engine, project_id=target["project_id"], persona=bundle["persona"])
+    storage_state = repo.get_storage_state(engine, project_id=target["project_id"], persona=bundle["persona"],
+                                           target_id=target["id"])    # THIS platform's session (§3.5)
     verify_id = repo.start_child_run(engine, parent_run_id=red_run_id, role="verify")
     started = _time.monotonic()
     from playwright.async_api import async_playwright
@@ -88,6 +89,7 @@ async def _verify_green(engine, artifacts, target, bundle: dict, modules, *, red
     repo.finish_child_run(engine, run_result_id=verify_id, verdict=outcome.verdict,
                           error_class=outcome.error_class, trace_path=ev.trace_path,
                           video_path=ev.video_path, screenshot_path=ev.screenshot_path,
+                          network_log_path=ev.network_log_path,
                           duration_ms=int((_time.monotonic() - started) * 1000))
     if outcome.error_class == "ENGINE_FAULT":
         # an engine fault during the verify replay is OUR bug, not "the re-author didn't verify". Re-surface
@@ -113,7 +115,8 @@ async def reauthor_member(engine, artifacts, *, project_id, target, test_id, nl,
     guided = bool(change_brief)                          # a member re-authored WITH the rep's brief (§9.4)
     old_bundle = repo.load_bundle(engine, test_id=test_id, version=head)
     start_path = (target.get("profile") or {}).get("probe_path") or "/"
-    storage_state = repo.get_storage_state(engine, project_id=project_id, persona=persona)
+    storage_state = repo.get_storage_state(engine, project_id=project_id, persona=persona,
+                                           target_id=target["id"])    # THIS platform's session (§3.5)
 
     # A behavior re-author KNOWS (deterministically — the frozen version red'd a postcondition, §7) that
     # the app changed under this flow. That is honest general guidance, not the answer: walk it as it is

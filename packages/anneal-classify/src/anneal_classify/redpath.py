@@ -71,7 +71,8 @@ async def _heal_and_apply(engine, artifacts, *, project_id, target, test_id, red
 
     from anneal_db.sink import DBStepEventSink
     healer = LadderHealer()
-    storage_state = repo.get_storage_state(engine, project_id=project_id, persona=persona)
+    storage_state = repo.get_storage_state(engine, project_id=project_id, persona=persona,
+                                           target_id=target["id"])    # THIS platform's session (§3.5)
     heal_id = repo.start_child_run(engine, parent_run_id=red_run_id, role="heal")
     started = _time.monotonic()
     from playwright.async_api import async_playwright
@@ -89,6 +90,7 @@ async def _heal_and_apply(engine, artifacts, *, project_id, target, test_id, red
     repo.finish_child_run(engine, run_result_id=heal_id, verdict=outcome.verdict,
                           error_class=outcome.error_class, trace_path=ev.trace_path,
                           video_path=ev.video_path, screenshot_path=ev.screenshot_path,
+                          network_log_path=ev.network_log_path,
                           duration_ms=int((_time.monotonic() - started) * 1000))
     if outcome.verdict not in ("green", "green_with_heals") or not outcome.heals:
         return False

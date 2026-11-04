@@ -44,9 +44,12 @@ async def author(project: str, body: AuthorRequest, eng: Engine, art: Artifacts,
         raise HTTPException(status_code=422, detail=str(e)) from None
 
     async def stream():
-        task = asyncio.create_task(author_and_freeze(
+        # Own thread + loop (as suites_launch does): the LLM seam is SYNC (anthropic/openai clients,
+        # up to 90s × retries) and would freeze uvicorn's loop — stalling every poll/SSE endpoint and
+        # the very heartbeat this stream exists to send.
+        task = asyncio.create_task(asyncio.to_thread(lambda: asyncio.run(author_and_freeze(
             eng, project_id=project, test_key=test_key, nl=body.nl, target_id=target_id,
-            persona=body.persona, answers=body.answers, artifacts=art))
+            persona=body.persona, answers=body.answers, artifacts=art))))
         yield b" "  # flush headers + first byte immediately so the proxy sees the response start
         while True:
             done, _ = await asyncio.wait({task}, timeout=15)
